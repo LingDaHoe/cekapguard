@@ -34,7 +34,15 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # Add your environment variables here if needed
+          # Firebase config (safe to expose for web apps - security handled server-side)
+          VITE_FIREBASE_API_KEY: AIzaSyBjvdlAs_-vT4OYm9JIDt4h-gYwlJ506iw
+          VITE_FIREBASE_AUTH_DOMAIN: cekapguard.firebaseapp.com
+          VITE_FIREBASE_PROJECT_ID: cekapguard
+          VITE_FIREBASE_STORAGE_BUCKET: cekapguard.firebasestorage.app
+          VITE_FIREBASE_MESSAGING_SENDER_ID: "609277749352"
+          VITE_FIREBASE_APP_ID: 1:609277749352:web:12da985bed623dae88f3dd
+          VITE_FIREBASE_MEASUREMENT_ID: G-TZRMWKPQVJ
+          # Gemini API key (add if needed for build)
           # GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Copy CNAME to dist
