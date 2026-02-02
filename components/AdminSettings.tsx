@@ -83,15 +83,6 @@ const AdminSettings: React.FC<SettingsProps> = ({ config, setConfig }) => {
                 <div className="w-20 h-20 bg-white border border-slate-200 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center p-2 shadow-sm">
                   <img src={cekapurusLogo} alt="Logo" className="max-w-full max-h-full object-contain" />
                 </div>
-                <div className="flex-1">
-                   <p className="text-[8px] text-slate-400 font-bold mb-1 ml-1 uppercase">Logo Pointer</p>
-                   <input 
-                    type="text" 
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-blue-600 focus:ring-4 focus:ring-blue-50 outline-none"
-                    value={localConfig.logo}
-                    onChange={e => setLocalConfig({...localConfig, logo: e.target.value})}
-                  />
-                </div>
               </div>
             </div>
 

@@ -1,8 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { X, Download, ShieldCheck, Mail, Phone, MapPin, Loader2, CheckCircle, Fingerprint, Building2 } from 'lucide-react';
 import { SystemConfig, DocType, VehicleType, InsuranceType } from '../types';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import cekapurusLogo from '../assets/cekapurus.png';
 
 interface PdfPreviewModalProps {
   isOpen: boolean;
@@ -31,6 +32,29 @@ interface PdfPreviewModalProps {
 const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onConfirm, isViewOnly = false, data, config }) => {
   const pdfRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+
+  // Embed logo as data URL so saved PDF always uses our PNG, not a link
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth;
+        c.height = img.naturalHeight;
+        const ctx = c.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          setLogoDataUrl(c.toDataURL('image/png'));
+        }
+      } catch {
+        setLogoDataUrl(cekapurusLogo);
+      }
+    };
+    img.onerror = () => setLogoDataUrl(cekapurusLogo);
+    img.src = cekapurusLogo;
+  }, []);
 
   if (!isOpen) return null;
 
@@ -43,6 +67,7 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
       if (scrollContainer) scrollContainer.scrollTop = 0;
 
       const element = pdfRef.current;
+      const logoToEmbed = logoDataUrl || cekapurusLogo;
       
       const canvas = await html2canvas(element, {
         scale: 2,
@@ -56,6 +81,8 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
           if (el) {
             el.style.boxShadow = 'none';
             el.style.borderRadius = '0';
+            const logoImg = el.querySelector('img[alt="Logo"]') as HTMLImageElement | null;
+            if (logoImg && logoToEmbed) logoImg.src = logoToEmbed;
           }
         }
       });
@@ -141,7 +168,7 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
             <div className="flex justify-between items-start mb-10 relative z-10">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 bg-white border border-slate-100 rounded-xl flex items-center justify-center p-2 shadow-sm overflow-hidden">
-                   <img src={config.logo} alt="Logo" className="max-w-full max-h-full object-contain" />
+                   <img src={logoDataUrl || cekapurusLogo} alt="Logo" className="max-w-full max-h-full object-contain" />
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-blue-700 leading-tight">{config.companyName}</h1>
