@@ -213,7 +213,7 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                   </p>
                   {data.vehicleRegNo && (
                     <p className="flex items-center gap-3 text-slate-500 font-medium leading-none">
-                      <span className="text-[9px] font-bold uppercase text-slate-400">Plate:</span>
+                      <span className="text-[9px] font-bold uppercase text-slate-400">{data.vehicleType === 'Contractor' ? 'Project:' : 'Plate:'}</span>
                       <span className="font-bold tracking-wide">{data.vehicleRegNo}</span>
                     </p>
                   )}
@@ -227,26 +227,31 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
               </div>
             </div>
 
-            {/* Coverage Box - same blue as Total Consideration */}
-            <div className="bg-blue-600 text-white rounded-2xl p-6 mb-8 shadow-xl relative z-10">
+            {/* Coverage Box - light blue */}
+            <div className="bg-blue-100 border border-blue-200 text-slate-900 rounded-2xl p-6 mb-8 shadow-lg relative z-10">
               <div className="flex justify-between items-center gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center border border-white/10">
-                    <ShieldCheck size={24} className="text-white" />
+                  <div className="w-12 h-12 bg-blue-200/80 rounded-xl flex items-center justify-center border border-blue-200">
+                    <ShieldCheck size={24} className="text-blue-700" />
                   </div>
                   <div>
-                    <p className="text-[8px] font-bold uppercase tracking-widest mb-1 opacity-90">Coverage Classification</p>
-                    <p className="text-sm font-bold">{data.vehicleType} Insurance Policy • {data.insuranceType}</p>
+                    <p className="text-[8px] font-bold text-blue-600 uppercase tracking-widest mb-1">Coverage Classification</p>
+                    <p className="text-sm font-bold">
+                      {data.vehicleType === 'Motor' ? 'Motor Insurance Policy' : 'Project Insurance Policy'}
+                      {data.vehicleType === 'Motor' && data.insuranceType && ` • ${data.insuranceType}`}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-[8px] font-bold uppercase tracking-widest mb-1 opacity-90">Registration Mark</p>
-                  <p className="text-2xl font-bold tracking-[0.2em]">{data.vehicleRegNo}</p>
+                  <p className="text-[8px] font-bold text-blue-600 uppercase tracking-widest mb-1">
+                    {data.vehicleType === 'Contractor' ? 'Project Name' : 'Registration Mark'}
+                  </p>
+                  <p className="text-2xl font-bold tracking-[0.2em] text-slate-900">{data.vehicleRegNo}</p>
                 </div>
               </div>
-              <div className="mt-4 pt-4 border-t border-white/20 flex items-center gap-2">
-                 <Building2 size={12} className="text-white opacity-90" />
-                 <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">Issued by: <span className="text-white ml-1 font-bold">{data.issuedCompany}</span></p>
+              <div className="mt-4 pt-4 border-t border-blue-200 flex items-center gap-2">
+                 <Building2 size={12} className="text-blue-600" />
+                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Issued by: <span className="text-slate-900 ml-1 font-bold">{data.issuedCompany}</span></p>
               </div>
             </div>
 
@@ -259,7 +264,7 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
               
               <div className="flex justify-between gap-10 py-1">
                 <div className="flex-1">
-                  <p className="font-bold text-slate-900 text-sm mb-3">{data.insuranceType} Protection Scheme</p>
+                  <p className="font-bold text-slate-900 text-sm mb-3">{data.vehicleType === 'Contractor' ? 'Project Insurance' : `${data.insuranceType} Protection Scheme`}</p>
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-[10px] text-slate-600 leading-relaxed italic">
                     {data.insuranceDetails || 'Standardized insurance protocol application in accordance with registered manifest requirements.'}
                   </div>

@@ -1,5 +1,5 @@
 
-export type VehicleType = 'Car' | 'Bike';
+export type VehicleType = 'Motor' | 'Contractor';
 export type InsuranceType = 'Comprehensive' | 'Third Party' | 'Theft & Fire';
 export type DocType = 'Invoice' | 'Receipt';
 

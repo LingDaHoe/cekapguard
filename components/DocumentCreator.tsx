@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Car, 
-  Bike, 
+  Briefcase, 
   CheckCircle2, 
   ChevronRight, 
   Sparkles, 
@@ -59,7 +59,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
     phone: '',
     ic: '',
     email: '',
-    vehicleType: 'Car' as VehicleType,
+    vehicleType: 'Motor' as VehicleType,
     vehicleRegNo: '',
     insuranceType: 'Comprehensive' as InsuranceType,
     issuedCompany: '',
@@ -251,7 +251,9 @@ const DocumentCreator: React.FC<CreatorProps> = ({
 
   // Step validation
   const isStep1Valid = formData.customerName && formData.phone && formData.ic;
-  const isStep2Valid = formData.vehicleType && formData.insuranceType && formData.vehicleRegNo && formData.issuedCompany;
+  const isStep2Valid = formData.vehicleType && formData.issuedCompany && (
+    formData.vehicleType === 'Contractor' ? formData.vehicleRegNo : (formData.insuranceType && formData.vehicleRegNo)
+  );
   const isStep3Valid = formData.amount && formData.insuranceDetails;
 
   return (
@@ -421,19 +423,19 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                   <div className="grid grid-cols-2 gap-3">
                     <button 
                       type="button"
-                      onClick={() => setFormData({...formData, vehicleType: 'Car'})}
-                      className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2 ${formData.vehicleType === 'Car' ? 'border-blue-600 bg-blue-500/10 text-blue-600' : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
+                      onClick={() => setFormData({...formData, vehicleType: 'Motor'})}
+                      className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2 ${formData.vehicleType === 'Motor' ? 'border-blue-600 bg-blue-500/10 text-blue-600' : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
                     >
                       <Car size={24} />
-                      <span className="text-[9px] font-bold uppercase">Car</span>
+                      <span className="text-[9px] font-bold uppercase">Motor</span>
                     </button>
                     <button 
                       type="button"
-                      onClick={() => setFormData({...formData, vehicleType: 'Bike'})}
-                      className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2 ${formData.vehicleType === 'Bike' ? 'border-blue-600 bg-blue-500/10 text-blue-600' : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
+                      onClick={() => setFormData({...formData, vehicleType: 'Contractor'})}
+                      className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2 ${formData.vehicleType === 'Contractor' ? 'border-blue-600 bg-blue-500/10 text-blue-600' : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
                     >
-                      <Bike size={24} />
-                      <span className="text-[9px] font-bold uppercase">Bike</span>
+                      <Briefcase size={24} />
+                      <span className="text-[9px] font-bold uppercase">Contractor</span>
                     </button>
                   </div>
                 </div>
@@ -455,30 +457,47 @@ const DocumentCreator: React.FC<CreatorProps> = ({
               </div>
 
               <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Policy Type <span className="text-red-500">*</span></label>
-                  <div className="relative">
-                    <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                    <select 
-                      className={`${inputClass} pl-9 appearance-none`}
-                      value={formData.insuranceType}
-                      onChange={e => setFormData({...formData, insuranceType: e.target.value as InsuranceType})}
-                    >
-                      {INSURANCE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
+                {formData.vehicleType === 'Motor' && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Policy Type <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                        <select 
+                          className={`${inputClass} pl-9 appearance-none`}
+                          value={formData.insuranceType}
+                          onChange={e => setFormData({...formData, insuranceType: e.target.value as InsuranceType})}
+                        >
+                          {INSURANCE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Plate Reference <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                        <input 
+                          type="text" placeholder="XYZ-1234" className={`${inputClass} pl-9 uppercase tracking-widest`}
+                          value={formData.vehicleRegNo}
+                          onChange={e => setFormData({...formData, vehicleRegNo: e.target.value.toUpperCase()})}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+                {formData.vehicleType === 'Contractor' && (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Project Name <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                      <input 
+                        type="text" placeholder="Project name" className={`${inputClass} pl-9`}
+                        value={formData.vehicleRegNo}
+                        onChange={e => setFormData({...formData, vehicleRegNo: e.target.value})}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Plate Reference <span className="text-red-500">*</span></label>
-                  <div className="relative">
-                    <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                    <input 
-                      type="text" placeholder="XYZ-1234" className={`${inputClass} pl-9 uppercase tracking-widest`}
-                      value={formData.vehicleRegNo}
-                      onChange={e => setFormData({...formData, vehicleRegNo: e.target.value.toUpperCase()})}
-                    />
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 

@@ -8,7 +8,7 @@ export async function suggestInsuranceNotes(vehicleType: string, insuranceType: 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Generate a short, professional remark (max 20 words) for a car/bike insurance ${insuranceType} policy for a ${vehicleType}. Make it sound like an official policy note.`,
+      contents: `Generate a short, professional remark (max 20 words) for a ${vehicleType === 'Contractor' ? 'project insurance' : 'motor insurance'} ${vehicleType === 'Contractor' ? 'policy' : insuranceType + ' policy'} for ${vehicleType}. Make it sound like an official policy note.`,
     });
     return response.text || "Standard policy terms apply.";
   } catch (error) {

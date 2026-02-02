@@ -3,7 +3,7 @@ import {
   Users, 
   Search, 
   Car, 
-  Bike, 
+  Briefcase, 
   Phone, 
   Mail, 
   Edit2,
@@ -79,12 +79,14 @@ const CustomerManagement: React.FC<CustomerProps> = ({ customers, updateCustomer
                 </h4>
                 <div className="flex flex-wrap items-center gap-2 mt-3">
                    <div className="bg-blue-50 px-3 py-1 rounded-xl border border-blue-100 flex items-center gap-2">
-                      {customer.vehicleType === 'Car' ? <Car className="text-blue-600" size={14} /> : <Bike className="text-blue-600" size={14} />}
+                      {customer.vehicleType === 'Motor' ? <Car className="text-blue-600" size={14} /> : <Briefcase className="text-blue-600" size={14} />}
                       <span className="text-[10px] font-bold text-blue-800 font-title uppercase tracking-widest">{customer.vehicleRegNo || 'N/A'}</span>
                    </div>
-                   <div className="px-3 py-1 bg-slate-100 rounded-xl text-[8px] font-bold text-slate-500 uppercase tracking-widest">
-                      {customer.insuranceType}
-                   </div>
+                   {customer.vehicleType === 'Motor' && (
+                     <div className="px-3 py-1 bg-slate-100 rounded-xl text-[8px] font-bold text-slate-500 uppercase tracking-widest">
+                        {customer.insuranceType}
+                     </div>
+                   )}
                 </div>
               </div>
 

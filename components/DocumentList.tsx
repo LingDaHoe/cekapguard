@@ -72,7 +72,7 @@ const DocumentList: React.FC<ListProps> = ({ documents, customers, config, curre
               phone: customer?.phone ?? '',
               ic: previewDoc.customerIc || 'UNSPECIFIED',
               email: customer?.email ?? '',
-              vehicleType: customer?.vehicleType ?? 'Car',
+              vehicleType: customer?.vehicleType ?? 'Motor',
               vehicleRegNo: customer?.vehicleRegNo ?? '',
               insuranceType: customer?.insuranceType ?? 'Comprehensive',
               issuedCompany: previewDoc.issuedCompany,

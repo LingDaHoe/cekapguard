@@ -17,7 +17,7 @@ export const MOCK_USERS: User[] = [
   { id: '3', name: 'Sarah Smith', role: 'Staff' }
 ];
 
-export const VEHICLE_TYPES = ['Car', 'Bike'];
+export const VEHICLE_TYPES = ['Motor', 'Contractor'];
 export const INSURANCE_TYPES = ['Comprehensive', 'Third Party', 'Theft & Fire'];
 
 export const INSURANCE_COMPANIES = [
