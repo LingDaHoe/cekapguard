@@ -10,21 +10,24 @@ import {
   User as UserIcon,
   Fingerprint
 } from 'lucide-react';
-import { Document, SystemConfig, User } from '../types';
+import { Document, SystemConfig, User, Customer } from '../types';
 import { italicizeFirstWord } from '../App';
 import PdfPreviewModal from './PdfPreviewModal';
 
 interface ListProps {
   documents: Document[];
+  customers: Customer[];
   config: SystemConfig;
   currentUser: User;
 }
 
-const DocumentList: React.FC<ListProps> = ({ documents, config, currentUser }) => {
+const DocumentList: React.FC<ListProps> = ({ documents, customers, config, currentUser }) => {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<string>('All');
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  const getCustomerByDoc = (doc: Document) => customers.find(c => c.id === doc.customerId);
   
   const filtered = documents.filter(doc => {
     const matchesSearch = 
@@ -56,31 +59,33 @@ const DocumentList: React.FC<ListProps> = ({ documents, config, currentUser }) =
   return (
     <div className="space-y-4">
       {/* Re-usable Modal for Viewing existing records */}
-      {previewDoc && (
-        <PdfPreviewModal
-          isOpen={isPreviewOpen}
-          onClose={() => setIsPreviewOpen(false)}
-          isViewOnly={true}
-          config={config}
-          // Fix: Added missing required 'issuedCompany' property and optional 'remarks'
-          data={{
-            customerName: previewDoc.customerName,
-            phone: 'REDACTED',
-            ic: previewDoc.customerIc || 'UNSPECIFIED',
-            email: '',
-            vehicleType: 'Car', 
-            vehicleRegNo: '', 
-            insuranceType: 'Comprehensive',
-            issuedCompany: previewDoc.issuedCompany,
-            amount: previewDoc.amount,
-            date: previewDoc.date,
-            insuranceDetails: previewDoc.insuranceDetails,
-            remarks: previewDoc.remarks,
-            docType: previewDoc.type,
-            docNumber: previewDoc.docNumber
-          }}
-        />
-      )}
+      {previewDoc && (() => {
+        const customer = getCustomerByDoc(previewDoc);
+        return (
+          <PdfPreviewModal
+            isOpen={isPreviewOpen}
+            onClose={() => setIsPreviewOpen(false)}
+            isViewOnly={true}
+            config={config}
+            data={{
+              customerName: previewDoc.customerName,
+              phone: customer?.phone ?? '',
+              ic: previewDoc.customerIc || 'UNSPECIFIED',
+              email: customer?.email ?? '',
+              vehicleType: customer?.vehicleType ?? 'Car',
+              vehicleRegNo: customer?.vehicleRegNo ?? '',
+              insuranceType: customer?.insuranceType ?? 'Comprehensive',
+              issuedCompany: previewDoc.issuedCompany,
+              amount: previewDoc.amount,
+              date: previewDoc.date,
+              insuranceDetails: previewDoc.insuranceDetails,
+              remarks: previewDoc.remarks,
+              docType: previewDoc.type,
+              docNumber: previewDoc.docNumber
+            }}
+          />
+        );
+      })()}
 
       <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
         <div className="relative flex-1 max-w-sm">

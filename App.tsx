@@ -445,6 +445,7 @@ const App: React.FC = () => {
             {activeTab === 'documents' && (
               <DocumentList 
                 documents={documents} 
+                customers={customers}
                 config={config} 
                 currentUser={currentUser}
               />

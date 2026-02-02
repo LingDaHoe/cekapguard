@@ -211,6 +211,12 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                     <div className="w-4 shrink-0 flex justify-center"><Phone size={10} className="text-blue-500" /></div>
                     <span>{data.phone}</span>
                   </p>
+                  {data.vehicleRegNo && (
+                    <p className="flex items-center gap-3 text-slate-500 font-medium leading-none">
+                      <span className="text-[9px] font-bold uppercase text-slate-400">Plate:</span>
+                      <span className="font-bold tracking-wide">{data.vehicleRegNo}</span>
+                    </p>
+                  )}
                   {data.email && (
                     <p className="flex items-center gap-3 text-slate-500 font-medium leading-none">
                       <div className="w-4 shrink-0 flex justify-center"><Mail size={10} className="text-blue-500" /></div>
