@@ -246,7 +246,7 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                   <p className="text-[8px] font-bold text-blue-600 uppercase tracking-widest mb-1">
                     {data.vehicleType === 'Contractor' ? 'Project Name' : 'Registration Mark'}
                   </p>
-                  <p className="text-2xl font-bold tracking-[0.2em] text-slate-900">{data.vehicleRegNo}</p>
+                  <p className="text-2xl font-bold text-slate-900">{data.vehicleRegNo}</p>
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-blue-200 flex items-center gap-2">
