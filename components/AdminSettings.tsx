@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Save, Image as ImageIcon, Building, MapPin, Phone, FileText, CheckCircle2 } from 'lucide-react';
 import { SystemConfig } from '../types';
 import { italicizeFirstWord } from '../App';
+import cekapurusLogo from '../assets/cekapurus.png';
 
 interface SettingsProps {
   config: SystemConfig;
@@ -81,7 +81,7 @@ const AdminSettings: React.FC<SettingsProps> = ({ config, setConfig }) => {
               </label>
               <div className="flex gap-4 items-center bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <div className="w-20 h-20 bg-white border border-slate-200 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center p-2 shadow-sm">
-                  <img src={localConfig.logo} alt="Asset" className="max-w-full max-h-full object-contain" />
+                  <img src={cekapurusLogo} alt="Logo" className="max-w-full max-h-full object-contain" />
                 </div>
                 <div className="flex-1">
                    <p className="text-[8px] text-slate-400 font-bold mb-1 ml-1 uppercase">Logo Pointer</p>
