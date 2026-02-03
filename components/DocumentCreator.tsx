@@ -443,7 +443,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                   <div className="grid grid-cols-2 gap-3">
                     <button 
                       type="button"
-                      onClick={() => setFormData({...formData, vehicleType: 'Motor'})}
+                      onClick={() => { setFormData({...formData, vehicleType: 'Motor'}); setAttachmentFile(null); }}
                       className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2 ${formData.vehicleType === 'Motor' ? 'border-blue-600 bg-blue-500/10 text-blue-600' : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
                     >
                       <Car size={24} />
@@ -537,52 +537,54 @@ const DocumentCreator: React.FC<CreatorProps> = ({
               </div>
             </div>
 
-            <div className="space-y-3 pt-2 border-t border-slate-100 pt-6">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                <FileText size={12} /> Attach contract PDF <span className="text-slate-300 font-normal">(optional)</span>
-              </label>
-              <div className="flex items-center gap-3 flex-wrap">
-                <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors">
-                  <Upload size={14} />
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    className="hidden"
-                    onChange={e => {
-                      const f = e.target.files?.[0];
-                      setAttachmentFile(f || null);
-                      e.target.value = '';
-                    }}
-                  />
-                  {attachmentFile ? 'Change file' : 'Choose PDF'}
+            {formData.vehicleType === 'Others' && (
+              <div className="space-y-3 pt-2 border-t border-slate-100 pt-6">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <FileText size={12} /> Attach contract PDF <span className="text-slate-300 font-normal">(optional)</span>
                 </label>
-                {attachmentFile && (
-                  <>
-                    <span className="text-[10px] font-bold text-slate-500 truncate max-w-[200px]" title={attachmentFile.name}>
-                      {attachmentFile.name}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const url = URL.createObjectURL(attachmentFile);
-                        setContractPreviewUrl(url);
+                <div className="flex items-center gap-3 flex-wrap">
+                  <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors">
+                    <Upload size={14} />
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      onChange={e => {
+                        const f = e.target.files?.[0];
+                        setAttachmentFile(f || null);
+                        e.target.value = '';
                       }}
-                      className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100 transition-colors"
-                      title="Preview PDF"
-                    >
-                      <Eye size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAttachmentFile(null)}
-                      className="text-[10px] font-bold text-red-500 hover:underline uppercase"
-                    >
-                      Remove
-                    </button>
-                  </>
-                )}
+                    />
+                    {attachmentFile ? 'Change file' : 'Choose PDF'}
+                  </label>
+                  {attachmentFile && (
+                    <>
+                      <span className="text-[10px] font-bold text-slate-500 truncate max-w-[200px]" title={attachmentFile.name}>
+                        {attachmentFile.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = URL.createObjectURL(attachmentFile);
+                          setContractPreviewUrl(url);
+                        }}
+                        className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100 transition-colors"
+                        title="Preview PDF"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAttachmentFile(null)}
+                        className="text-[10px] font-bold text-red-500 hover:underline uppercase"
+                      >
+                        Remove
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="flex justify-between items-center pt-4 border-t border-slate-100">
               <button onClick={() => setStep(1)} className="text-slate-400 hover:text-blue-600 font-bold text-[10px] uppercase">Retreat</button>
