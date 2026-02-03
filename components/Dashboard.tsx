@@ -93,11 +93,11 @@ const Dashboard: React.FC<DashboardProps> = ({ documents, customers, onActionCli
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 glass-card p-6 rounded-2xl border border-slate-200 relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-8">
+        <div className="xl:col-span-2 glass-card p-4 rounded-2xl border border-slate-200 relative overflow-hidden flex flex-col">
+          <div className="relative z-10 flex flex-col flex-1 min-h-0">
+            <div className="flex items-center justify-between mb-3 shrink-0">
               <div>
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-0.5">
                   <Zap size={14} className="text-blue-500 fill-blue-500" />
                   <span className="text-blue-500 text-[10px] font-bold uppercase tracking-widest font-poppins">Analytics Dashboard</span>
                 </div>
@@ -111,7 +111,7 @@ const Dashboard: React.FC<DashboardProps> = ({ documents, customers, onActionCli
               </div>
             </div>
             
-            <div className="h-[280px] w-full">
+            <div className="flex-1 min-h-[320px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
