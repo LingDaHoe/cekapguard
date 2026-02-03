@@ -262,9 +262,9 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                     <div className="w-4 shrink-0 flex justify-center"><Phone size={10} className="text-blue-500" /></div>
                     <span>{data.phone}</span>
                   </p>
-                  {data.vehicleRegNo && (
+                  {data.vehicleRegNo && data.vehicleType === 'Motor' && (
                     <p className="flex items-center gap-3 text-slate-500 font-medium leading-none">
-                      <span className="text-[9px] font-bold uppercase text-slate-400">{data.vehicleType === 'Others' ? 'Project:' : 'Plate:'}</span>
+                      <span className="text-[9px] font-bold uppercase text-slate-400">Plate:</span>
                       <span className={`font-bold tracking-wide ${projectNameFontClass}`}>{data.vehicleRegNo}</span>
                     </p>
                   )}
@@ -313,54 +313,59 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
               </div>
             </div>
 
-            {/* Table Area */}
+            {/* Coverage summary: categories / type, provider, amount */}
             <div className="mb-6 relative z-10">
-              <div className="flex justify-between items-center border-b-2 border-slate-900 pb-2 mb-4">
-                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Policy Particulars</span>
-                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 text-right">Net Premium (RM)</span>
+              <div className="border-b-2 border-slate-900 pb-2 mb-3">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Coverage summary</p>
               </div>
-              
-              <div className="flex justify-between gap-10 py-1">
-                <div className="flex-1">
-                  <p className="font-bold text-slate-900 text-sm mb-3">{data.vehicleType === 'Others' ? 'Project Insurance' : `${data.insuranceType} Protection Scheme`}</p>
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-[10px] text-slate-600 leading-relaxed italic">
-                    {data.insuranceDetails || 'Standardized insurance protocol application in accordance with registered manifest requirements.'}
-                  </div>
-                  {data.remarks && (
-                    <div className="mt-3">
-                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Remarks</p>
-                      <p className="text-[9px] text-slate-500 italic">{data.remarks}</p>
-                    </div>
-                  )}
-                </div>
-                <div className="text-right min-w-[140px] space-y-1">
-                  {hasOthersEntries && data.othersEntries!.map((entry, idx) => (
-                    <div key={idx} className="flex justify-between gap-4 text-xs">
-                      <span className="text-slate-500 font-medium">{entry.category}</span>
-                      <span className="font-bold text-slate-800">{entry.amount.toLocaleString('en-MY', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                  ))}
-                  {!hasOthersEntries && data.vehicleType === 'Motor' && data.serviceCharge != null && data.serviceCharge > 0 && (
-                    <>
-                      <div className="flex justify-between gap-4 text-xs">
-                        <span className="text-slate-500 font-medium">Premium</span>
-                        <span className="font-bold text-slate-800">{(safeAmount - data.serviceCharge).toLocaleString('en-MY', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                      <div className="flex justify-between gap-4 text-xs">
-                        <span className="text-slate-500 font-medium">Service charge</span>
-                        <span className="font-bold text-slate-800">{data.serviceCharge.toLocaleString('en-MY', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    </>
-                  )}
-                  {data.serviceCharge != null && data.serviceCharge > 0 && hasOthersEntries && (
-                    <div className="flex justify-between gap-4 text-xs border-t border-slate-100 pt-1 mt-1">
-                      <span className="text-slate-500 font-medium">Service charge</span>
-                      <span className="font-bold text-slate-800">{data.serviceCharge.toLocaleString('en-MY', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                  )}
-                  <p className="text-xl font-bold text-blue-700 pt-1 border-t border-slate-200 mt-1">Total: {formattedAmount}</p>
-                </div>
+              <div className="rounded-xl border border-slate-200 overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider">Category / Type</th>
+                      <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider">Insurance provider</th>
+                      <th className="px-4 py-2.5 font-bold text-slate-500 uppercase tracking-wider text-right">Amount (RM)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-slate-700">
+                    {hasOthersEntries && data.othersEntries!.map((entry, idx) => (
+                      <tr key={idx} className="border-b border-slate-100 last:border-0">
+                        <td className="px-4 py-2.5 font-medium">{entry.category}</td>
+                        <td className="px-4 py-2.5">{data.issuedCompany}</td>
+                        <td className="px-4 py-2.5 text-right font-bold">{entry.amount.toLocaleString('en-MY', { minimumFractionDigits: 2 })}</td>
+                      </tr>
+                    ))}
+                    {!hasOthersEntries && data.vehicleType === 'Motor' && (
+                      <tr className="border-b border-slate-100">
+                        <td className="px-4 py-2.5 font-medium">{data.insuranceType}</td>
+                        <td className="px-4 py-2.5">{data.issuedCompany}</td>
+                        <td className="px-4 py-2.5 text-right font-bold">
+                          {data.serviceCharge != null && data.serviceCharge > 0
+                            ? (safeAmount - data.serviceCharge).toLocaleString('en-MY', { minimumFractionDigits: 2 })
+                            : formattedAmount}
+                        </td>
+                      </tr>
+                    )}
+                    {data.serviceCharge != null && data.serviceCharge > 0 && (
+                      <tr className="border-b border-slate-100 bg-slate-50/50">
+                        <td className="px-4 py-2.5 font-medium text-slate-600">Service charge</td>
+                        <td className="px-4 py-2.5">—</td>
+                        <td className="px-4 py-2.5 text-right font-bold">{data.serviceCharge.toLocaleString('en-MY', { minimumFractionDigits: 2 })}</td>
+                      </tr>
+                    )}
+                    <tr className="bg-blue-50/50">
+                      <td className="px-4 py-3 font-bold text-slate-900" colSpan={2}>Total</td>
+                      <td className="px-4 py-3 text-right font-bold text-blue-700 text-base">{formattedAmount}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
+              {data.remarks && (
+                <div className="mt-3">
+                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Remarks</p>
+                  <p className="text-[9px] text-slate-500 italic">{data.remarks}</p>
+                </div>
+              )}
             </div>
 
             {/* Footer and Totals */}

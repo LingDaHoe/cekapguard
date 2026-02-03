@@ -274,7 +274,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
         issuedCompany: formData.issuedCompany,
         date: formData.date,
         amount,
-        insuranceDetails: formData.insuranceDetails,
+        insuranceDetails: '',
         remarks: formData.remarks,
         ...(othersEntriesPayload && { othersEntries: othersEntriesPayload }),
         ...(serviceChargePayload !== undefined && serviceChargePayload > 0 && { serviceCharge: serviceChargePayload })
@@ -297,9 +297,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
       ? (formData.othersEntries.length > 0 && formData.othersEntries.every(e => e.category && e.amount) && formData.vehicleRegNo)
       : (formData.insuranceType && formData.vehicleRegNo)
   );
-  const isStep3Valid = formData.vehicleType === 'Motor'
-    ? formData.amount && formData.insuranceDetails
-    : formData.insuranceDetails;
+  const isStep3Valid = formData.vehicleType === 'Motor' ? !!formData.amount : true;
   const serviceChargeNum = parseFloat(formData.serviceChargeAmount) || 0;
   const totalAmount = formData.vehicleType === 'Motor'
     ? (parseFloat(formData.amount) || 0) + serviceChargeNum
@@ -779,20 +777,6 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                 <p className="text-sm font-bold text-blue-600 pt-1 border-t border-slate-200/80 mt-2">Total: RM {totalAmount.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
 
-              <div className="space-y-3 md:col-span-2">
-                <div className="flex justify-between items-center px-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Protocol Details <span className="text-red-500">*</span></label>
-                  <button type="button" onClick={generateAINotes} disabled={aiLoading} className="text-[9px] font-bold text-blue-600 flex items-center gap-1 hover:underline disabled:opacity-50">
-                    <Sparkles size={10} /> {aiLoading ? 'Synthesizing...' : 'AI ASSIST'}
-                  </button>
-                </div>
-                <textarea 
-                  className="w-full p-3 bg-slate-50/50 border border-slate-200 rounded-xl text-xs font-medium min-h-[120px] focus:ring-2 focus:ring-blue-500/10 outline-none transition-all resize-none shadow-inner"
-                  placeholder="Policy specifics..."
-                  value={formData.insuranceDetails}
-                  onChange={e => setFormData({...formData, insuranceDetails: e.target.value})}
-                ></textarea>
-              </div>
             </div>
 
             <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
