@@ -19,7 +19,7 @@ export const MOCK_USERS: User[] = [
 
 export const VEHICLE_TYPES = ['Motor', 'Others'];
 export const OTHERS_CATEGORIES: OthersCategory[] = ['Public Liability', 'Contractor All Risk', "Workmen's Compensation", 'Bond'];
-export const INSURANCE_TYPES = ['Comprehensive', 'Third Party', 'Theft & Fire'];
+export const INSURANCE_TYPES = ['Comprehensive', 'Third Party', 'Fire & Theft'];
 
 export const INSURANCE_COMPANIES = [
   "Takaful Ikhlas",

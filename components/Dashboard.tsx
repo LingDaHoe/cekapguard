@@ -164,7 +164,7 @@ const Dashboard: React.FC<DashboardProps> = ({ documents, customers, onActionCli
             </div>
             
             <div className="space-y-3">
-              {documents.slice(0, 5).map((doc, idx) => (
+              {documents.slice(0, 3).map((doc, idx) => (
                 <div key={idx} className="flex items-center justify-between p-3 hover:bg-white/50 rounded-lg transition-colors border border-transparent hover:border-slate-100">
                   <div className="flex items-center gap-3">
                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${doc.type === 'Invoice' ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
