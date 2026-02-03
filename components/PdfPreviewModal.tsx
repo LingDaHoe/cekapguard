@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { X, Download, ShieldCheck, Mail, Phone, MapPin, Loader2, CheckCircle, Fingerprint, Building2, FileText } from 'lucide-react';
-import { SystemConfig, DocType, VehicleType, InsuranceType, OthersCategory } from '../types';
+import { SystemConfig, DocType, VehicleType, InsuranceType, OthersCategory, OthersEntry } from '../types';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import cekapurusLogo from '../assets/cekapurus.png';
@@ -15,12 +15,15 @@ interface PdfPreviewModalProps {
     phone: string;
     ic: string;
     email: string;
+    isCompany?: boolean;
     vehicleType: VehicleType;
     vehicleRegNo: string;
     insuranceType: InsuranceType;
     othersCategory?: OthersCategory;
+    othersEntries?: OthersEntry[];
     issuedCompany: string;
     amount: string | number;
+    serviceCharge?: number;
     date: string;
     insuranceDetails: string;
     remarks?: string;
@@ -112,6 +115,8 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
   const amountValue = typeof data.amount === 'string' ? parseFloat(data.amount) : data.amount;
   const safeAmount = isNaN(amountValue) ? 0 : amountValue;
   const formattedAmount = safeAmount.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const hasOthersEntries = data.othersEntries && data.othersEntries.length > 0;
+  const categoriesLabel = hasOthersEntries ? data.othersEntries!.map(e => e.category).join(', ') : (data.othersCategory ?? '');
 
   // Shrink project name / registration mark font when long so it doesn't look bulky
   const regNoLen = (data.vehicleRegNo || '').length;
@@ -247,10 +252,12 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                 <h3 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">Insured Entity</h3>
                 <div className="space-y-2 text-xs">
                   <p className="text-lg font-bold text-slate-900 leading-none mb-2">{data.customerName}</p>
-                  <p className="flex items-center gap-3 text-slate-500 font-bold uppercase text-[9px] leading-none">
-                    <div className="w-4 shrink-0 flex justify-center"><Fingerprint size={10} className="text-blue-500" /></div>
-                    <span>IC NO: {data.ic}</span>
-                  </p>
+                  {!data.isCompany && (
+                    <p className="flex items-center gap-3 text-slate-500 font-bold uppercase text-[9px] leading-none">
+                      <div className="w-4 shrink-0 flex justify-center"><Fingerprint size={10} className="text-blue-500" /></div>
+                      <span>IC NO: {data.ic || '—'}</span>
+                    </p>
+                  )}
                   <p className="flex items-center gap-3 text-slate-500 font-medium leading-none">
                     <div className="w-4 shrink-0 flex justify-center"><Phone size={10} className="text-blue-500" /></div>
                     <span>{data.phone}</span>
@@ -259,6 +266,12 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                     <p className="flex items-center gap-3 text-slate-500 font-medium leading-none">
                       <span className="text-[9px] font-bold uppercase text-slate-400">{data.vehicleType === 'Others' ? 'Project:' : 'Plate:'}</span>
                       <span className={`font-bold tracking-wide ${projectNameFontClass}`}>{data.vehicleRegNo}</span>
+                    </p>
+                  )}
+                  {data.vehicleType === 'Others' && (categoriesLabel || hasOthersEntries) && (
+                    <p className="flex items-center gap-3 text-slate-500 font-medium leading-none">
+                      <span className="text-[9px] font-bold uppercase text-slate-400">Categories:</span>
+                      <span className="font-bold text-slate-700">{hasOthersEntries ? data.othersEntries!.map(e => e.category).join(', ') : categoriesLabel}</span>
                     </p>
                   )}
                   {data.email && (
@@ -283,7 +296,7 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                     <p className="text-sm font-bold">
                       {data.vehicleType === 'Motor' ? 'Motor Insurance Policy' : 'Project Insurance Policy'}
                       {data.vehicleType === 'Motor' && data.insuranceType && ` • ${data.insuranceType}`}
-                      {data.vehicleType === 'Others' && data.othersCategory && ` • ${data.othersCategory}`}
+                      {data.vehicleType === 'Others' && (hasOthersEntries ? ` • ${data.othersEntries!.map(e => e.category).join(', ')}` : data.othersCategory && ` • ${data.othersCategory}`)}
                     </p>
                   </div>
                 </div>
@@ -320,8 +333,32 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                     </div>
                   )}
                 </div>
-                <div className="text-right min-w-[120px]">
-                  <p className="text-2xl font-bold text-blue-700">{formattedAmount}</p>
+                <div className="text-right min-w-[140px] space-y-1">
+                  {hasOthersEntries && data.othersEntries!.map((entry, idx) => (
+                    <div key={idx} className="flex justify-between gap-4 text-xs">
+                      <span className="text-slate-500 font-medium">{entry.category}</span>
+                      <span className="font-bold text-slate-800">{entry.amount.toLocaleString('en-MY', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  ))}
+                  {!hasOthersEntries && data.vehicleType === 'Motor' && data.serviceCharge != null && data.serviceCharge > 0 && (
+                    <>
+                      <div className="flex justify-between gap-4 text-xs">
+                        <span className="text-slate-500 font-medium">Premium</span>
+                        <span className="font-bold text-slate-800">{(safeAmount - data.serviceCharge).toLocaleString('en-MY', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between gap-4 text-xs">
+                        <span className="text-slate-500 font-medium">Service charge</span>
+                        <span className="font-bold text-slate-800">{data.serviceCharge.toLocaleString('en-MY', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </>
+                  )}
+                  {data.serviceCharge != null && data.serviceCharge > 0 && hasOthersEntries && (
+                    <div className="flex justify-between gap-4 text-xs border-t border-slate-100 pt-1 mt-1">
+                      <span className="text-slate-500 font-medium">Service charge</span>
+                      <span className="font-bold text-slate-800">{data.serviceCharge.toLocaleString('en-MY', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
+                  <p className="text-xl font-bold text-blue-700 pt-1 border-t border-slate-200 mt-1">Total: {formattedAmount}</p>
                 </div>
               </div>
             </div>

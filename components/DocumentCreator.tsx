@@ -18,7 +18,9 @@ import {
   Building2,
   FileText,
   Upload,
-  X
+  X,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { 
   Customer, 
@@ -27,6 +29,7 @@ import {
   VehicleType, 
   InsuranceType,
   OthersCategory,
+  OthersEntry,
   SystemConfig 
 } from '../types';
 import { INSURANCE_TYPES, INSURANCE_COMPANIES, OTHERS_CATEGORIES } from '../constants';
@@ -38,7 +41,7 @@ interface CreatorProps {
   customers: Customer[];
   addCustomer: (c: Omit<Customer, 'id' | 'lastUpdated'>) => Promise<Customer>;
   updateCustomer: (c: Customer) => void;
-  addDocument: (d: Omit<Document, 'id' | 'docNumber' | 'staffId' | 'staffName' | 'attachmentUrl'>, file?: File) => void;
+  addDocument: (d: Omit<Document, 'id' | 'docNumber' | 'staffId' | 'staffName' | 'attachmentUrl'>, file?: File) => void | Promise<void>;
   config: SystemConfig;
 }
 
@@ -57,21 +60,26 @@ const DocumentCreator: React.FC<CreatorProps> = ({
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<Customer | null>(null);
   
+  type OthersEntryForm = { category: OthersCategory; amount: string };
   const [formData, setFormData] = useState({
     customerId: '',
     customerName: '',
     phone: '',
     ic: '',
     email: '',
+    isCompany: false,
     vehicleType: 'Motor' as VehicleType,
     vehicleRegNo: '',
     insuranceType: 'Comprehensive' as InsuranceType,
     othersCategory: undefined as OthersCategory | undefined,
+    othersEntries: [] as OthersEntryForm[],
     issuedCompany: '',
     amount: '',
     date: new Date().toISOString().split('T')[0],
     remarks: '',
-    insuranceDetails: ''
+    insuranceDetails: '',
+    serviceChargeEnabled: false,
+    serviceChargeAmount: ''
   });
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [contractPreviewUrl, setContractPreviewUrl] = useState<string | null>(null);
@@ -92,7 +100,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
       return;
     }
 
-    if (formData.ic && formData.ic.length >= 12) {
+    if (!formData.isCompany && formData.ic && formData.ic.length >= 12) {
       const match = customers.find(c => c.ic === formData.ic);
       if (match) {
         setDuplicateWarning(match);
@@ -172,10 +180,12 @@ const DocumentCreator: React.FC<CreatorProps> = ({
       phone: c.phone,
       ic: c.ic || '',
       email: c.email || '',
+      isCompany: c.isCompany ?? false,
       vehicleType: c.vehicleType,
       vehicleRegNo: c.vehicleRegNo,
       insuranceType: c.insuranceType,
-      othersCategory: c.othersCategory
+      othersCategory: c.othersCategory,
+      othersEntries: c.othersCategory ? [{ category: c.othersCategory, amount: '' }] : []
     });
     setSearchQuery('');
     setStep(2);
@@ -214,9 +224,10 @@ const DocumentCreator: React.FC<CreatorProps> = ({
             name: formData.customerName,
             phone: formData.phone,
             ic: formData.ic,
+            isCompany: formData.isCompany,
             vehicleRegNo: formData.vehicleRegNo,
             insuranceType: formData.insuranceType,
-            othersCategory: formData.othersCategory
+            othersCategory: formData.othersEntries?.[0]?.category ?? formData.othersCategory
           });
         } else {
           const newCust = await addCustomer({
@@ -224,10 +235,11 @@ const DocumentCreator: React.FC<CreatorProps> = ({
             phone: formData.phone,
             ic: formData.ic,
             email: formData.email,
+            isCompany: formData.isCompany,
             vehicleType: formData.vehicleType,
             vehicleRegNo: formData.vehicleRegNo,
             insuranceType: formData.insuranceType,
-            othersCategory: formData.othersCategory
+            othersCategory: formData.othersEntries?.[0]?.category ?? formData.othersCategory
           });
           targetCustomerId = newCust.id;
         }
@@ -238,15 +250,23 @@ const DocumentCreator: React.FC<CreatorProps> = ({
             ...existing,
             phone: formData.phone,
             ic: formData.ic,
+            isCompany: formData.isCompany,
             vehicleRegNo: formData.vehicleRegNo,
             insuranceType: formData.insuranceType,
-            othersCategory: formData.othersCategory
+            othersCategory: formData.othersEntries?.[0]?.category ?? formData.othersCategory
           });
         }
       }
 
       if (!targetCustomerId) throw new Error("Entity link failed.");
 
+      const amount = formData.vehicleType === 'Motor'
+        ? (parseFloat(formData.amount) || 0) + (formData.serviceChargeEnabled ? parseFloat(formData.serviceChargeAmount) || 0 : 0)
+        : formData.othersEntries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) + (formData.serviceChargeEnabled ? parseFloat(formData.serviceChargeAmount) || 0 : 0);
+      const othersEntriesPayload = formData.vehicleType === 'Others' && formData.othersEntries.length > 0
+        ? formData.othersEntries.map(e => ({ category: e.category, amount: parseFloat(e.amount) || 0 }))
+        : undefined;
+      const serviceChargePayload = formData.serviceChargeEnabled ? (parseFloat(formData.serviceChargeAmount) || 0) : undefined;
       addDocument({
         type: docType,
         customerId: targetCustomerId,
@@ -254,10 +274,11 @@ const DocumentCreator: React.FC<CreatorProps> = ({
         customerIc: formData.ic,
         issuedCompany: formData.issuedCompany,
         date: formData.date,
-        amount: parseFloat(formData.amount) || 0,
+        amount,
         insuranceDetails: formData.insuranceDetails,
         remarks: formData.remarks,
-        ...(formData.othersCategory && { othersCategory: formData.othersCategory })
+        ...(othersEntriesPayload && { othersEntries: othersEntriesPayload }),
+        ...(serviceChargePayload !== undefined && serviceChargePayload > 0 && { serviceCharge: serviceChargePayload })
       }, attachmentFile || undefined);
       setIsPreviewOpen(false);
     } catch (error) {
@@ -271,11 +292,18 @@ const DocumentCreator: React.FC<CreatorProps> = ({
   const inputClass = "w-full px-3 py-2 bg-slate-50/50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all backdrop-blur-sm";
 
   // Step validation
-  const isStep1Valid = formData.customerName && formData.phone && formData.ic;
+  const isStep1Valid = formData.customerName && formData.phone && (formData.isCompany || formData.ic);
   const isStep2Valid = formData.vehicleType && formData.issuedCompany && (
-    formData.vehicleType === 'Others' ? (formData.othersCategory && formData.vehicleRegNo) : (formData.insuranceType && formData.vehicleRegNo)
+    formData.vehicleType === 'Others'
+      ? (formData.othersEntries.length > 0 && formData.othersEntries.every(e => e.category && e.amount) && formData.vehicleRegNo)
+      : (formData.insuranceType && formData.vehicleRegNo)
   );
-  const isStep3Valid = formData.amount && formData.insuranceDetails;
+  const isStep3Valid = formData.vehicleType === 'Motor'
+    ? formData.amount && formData.insuranceDetails
+    : formData.insuranceDetails;
+  const totalAmount = formData.vehicleType === 'Motor'
+    ? (parseFloat(formData.amount) || 0) + (formData.serviceChargeEnabled ? parseFloat(formData.serviceChargeAmount) || 0 : 0)
+    : formData.othersEntries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) + (formData.serviceChargeEnabled ? parseFloat(formData.serviceChargeAmount) || 0 : 0);
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-12">
@@ -286,6 +314,9 @@ const DocumentCreator: React.FC<CreatorProps> = ({
         config={config}
         data={{
           ...formData,
+          amount: totalAmount,
+          othersEntries: formData.vehicleType === 'Others' ? formData.othersEntries.map(e => ({ category: e.category, amount: parseFloat(e.amount) || 0 })) : undefined,
+          serviceCharge: formData.serviceChargeEnabled ? (parseFloat(formData.serviceChargeAmount) || 0) : undefined,
           docType
         }}
       />
@@ -382,10 +413,31 @@ const DocumentCreator: React.FC<CreatorProps> = ({
             )}
 
             <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Client type</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({...formData, isCompany: false})}
+                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-xs font-bold transition-all ${!formData.isCompany ? 'border-blue-600 bg-blue-500/10 text-blue-600' : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
+                  >
+                    <UserPlus size={16} />
+                    Individual
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({...formData, isCompany: true})}
+                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-xs font-bold transition-all ${formData.isCompany ? 'border-blue-600 bg-blue-500/10 text-blue-600' : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
+                  >
+                    <Building2 size={16} />
+                    Company
+                  </button>
+                </div>
+              </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Entity Name <span className="text-red-500">*</span></label>
                 <input 
-                  type="text" placeholder="John Doe" className={inputClass}
+                  type="text" placeholder={formData.isCompany ? 'Company name' : 'John Doe'} className={inputClass}
                   value={formData.customerName}
                   onChange={e => setFormData({...formData, customerName: e.target.value, customerId: ''})}
                 />
@@ -400,17 +452,19 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                     onChange={e => setFormData({...formData, phone: formatPhoneNumber(e.target.value), customerId: ''})}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Identity Card (IC) <span className="text-red-500">*</span></label>
-                  <div className="relative">
-                    <Fingerprint className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-200" size={16} />
-                    <input 
-                      type="text" placeholder="000000-00-0000" className={inputClass}
-                      value={formData.ic}
-                      onChange={e => setFormData({...formData, ic: formatICNumberBasic(e.target.value), customerId: ''})}
-                    />
+                {!formData.isCompany && (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Identity Card (IC) <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <Fingerprint className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-200" size={16} />
+                      <input 
+                        type="text" placeholder="000000-00-0000" className={inputClass}
+                        value={formData.ic}
+                        onChange={e => setFormData({...formData, ic: formatICNumberBasic(e.target.value), customerId: ''})}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -444,7 +498,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                   <div className="grid grid-cols-2 gap-3">
                     <button 
                       type="button"
-                      onClick={() => { setFormData({...formData, vehicleType: 'Motor'}); setAttachmentFile(null); }}
+                      onClick={() => { setFormData({...formData, vehicleType: 'Motor', othersEntries: []}); setAttachmentFile(null); }}
                       className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2 ${formData.vehicleType === 'Motor' ? 'border-blue-600 bg-blue-500/10 text-blue-600' : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
                     >
                       <Car size={24} />
@@ -452,7 +506,11 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                     </button>
                     <button 
                       type="button"
-                      onClick={() => setFormData({...formData, vehicleType: 'Others'})}
+                      onClick={() => setFormData({
+                        ...formData,
+                        vehicleType: 'Others',
+                        othersEntries: formData.othersEntries.length ? formData.othersEntries : [{ category: 'Public Liability', amount: '' }]
+                      })}
                       className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2 ${formData.vehicleType === 'Others' ? 'border-blue-600 bg-blue-500/10 text-blue-600' : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
                     >
                       <Briefcase size={24} />
@@ -509,20 +567,6 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                 {formData.vehicleType === 'Others' && (
                   <>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Category <span className="text-red-500">*</span></label>
-                      <div className="relative">
-                        <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                        <select 
-                          className={`${inputClass} pl-9 appearance-none`}
-                          value={formData.othersCategory ?? ''}
-                          onChange={e => setFormData({...formData, othersCategory: (e.target.value || undefined) as OthersCategory | undefined})}
-                        >
-                          <option value="">Select category...</option>
-                          {OTHERS_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Project Name <span className="text-red-500">*</span></label>
                       <div className="relative">
                         <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
@@ -532,6 +576,56 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                           onChange={e => setFormData({...formData, vehicleRegNo: e.target.value})}
                         />
                       </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Categories & amount (RM) <span className="text-red-500">*</span></label>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({...formData, othersEntries: [...formData.othersEntries, { category: 'Public Liability', amount: '' }]})}
+                          className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-blue-600 hover:bg-blue-50 border border-blue-200"
+                        >
+                          <Plus size={12} /> Add category
+                        </button>
+                      </div>
+                      {formData.othersEntries.map((entry, idx) => (
+                        <div key={idx} className="flex gap-2 items-center">
+                          <select
+                            className={`${inputClass} flex-1 pl-3 appearance-none`}
+                            value={entry.category}
+                            onChange={e => {
+                              const next = [...formData.othersEntries];
+                              next[idx] = { ...next[idx], category: e.target.value as OthersCategory };
+                              setFormData({...formData, othersEntries: next});
+                            }}
+                          >
+                            {OTHERS_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                          </select>
+                          <div className="relative w-28">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">RM</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="0"
+                              className={`${inputClass} pl-8 text-xs`}
+                              value={entry.amount}
+                              onChange={e => {
+                                const next = [...formData.othersEntries];
+                                next[idx] = { ...next[idx], amount: e.target.value };
+                                setFormData({...formData, othersEntries: next});
+                              }}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({...formData, othersEntries: formData.othersEntries.filter((_, i) => i !== idx)})}
+                            className="p-2 text-slate-400 hover:text-red-500 rounded-lg"
+                            title="Remove"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                     <div className="space-y-3 pt-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
@@ -640,20 +734,64 @@ const DocumentCreator: React.FC<CreatorProps> = ({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-3">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Amount (RM) <span className="text-red-500">*</span></label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-600 font-title text-2xl opacity-40">RM</span>
-                  <input 
-                    type="number" step="0.01" required placeholder="0.00"
-                    className="w-full pl-16 pr-4 py-6 bg-blue-500/5 border-2 border-blue-100 rounded-xl text-4xl md:text-5xl font-title text-blue-700 focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all shadow-inner leading-none"
-                    value={formData.amount}
-                    onChange={e => setFormData({...formData, amount: e.target.value})}
-                  />
+              {formData.vehicleType === 'Motor' && (
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Amount (RM) <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-600 font-title text-2xl opacity-40">RM</span>
+                    <input 
+                      type="number" step="0.01" required placeholder="0.00"
+                      className="w-full pl-16 pr-4 py-6 bg-blue-500/5 border-2 border-blue-100 rounded-xl text-4xl md:text-5xl font-title text-blue-700 focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all shadow-inner leading-none"
+                      value={formData.amount}
+                      onChange={e => setFormData({...formData, amount: e.target.value})}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
+              {formData.vehicleType === 'Others' && (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Category amounts (from step 2)</label>
+                  <div className="space-y-2 bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    {formData.othersEntries.map((e, idx) => (
+                      <div key={idx} className="flex justify-between text-xs font-bold text-slate-700">
+                        <span>{e.category}</span>
+                        <span>RM {(parseFloat(e.amount) || 0).toLocaleString('en-MY', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">Service charge <span className="text-slate-300 font-normal">(optional)</span></label>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.serviceChargeEnabled}
+                      onChange={e => setFormData({...formData, serviceChargeEnabled: e.target.checked})}
+                      className="rounded border-slate-300 text-blue-600"
+                    />
+                    <span className="text-xs font-medium text-slate-600">Add service charge</span>
+                  </label>
+                  {formData.serviceChargeEnabled && (
+                    <div className="relative w-32">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">RM</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        className={`${inputClass} pl-8 text-sm`}
+                        value={formData.serviceChargeAmount}
+                        onChange={e => setFormData({...formData, serviceChargeAmount: e.target.value})}
+                      />
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] font-bold text-blue-600">Total: RM {totalAmount.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              </div>
+
+              <div className="space-y-3 md:col-span-2">
                 <div className="flex justify-between items-center px-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Protocol Details <span className="text-red-500">*</span></label>
                   <button type="button" onClick={generateAINotes} disabled={aiLoading} className="text-[9px] font-bold text-blue-600 flex items-center gap-1 hover:underline disabled:opacity-50">

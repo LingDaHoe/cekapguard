@@ -4,6 +4,12 @@ export type InsuranceType = 'Comprehensive' | 'Third Party' | 'Theft & Fire';
 export type OthersCategory = 'Public Liability' | 'Contractor All Risk' | "Workmen's Compensation" | 'Bond';
 export type DocType = 'Invoice' | 'Receipt';
 
+/** For Others: one category with its insurance amount */
+export interface OthersEntry {
+  category: OthersCategory;
+  amount: number;
+}
+
 export interface Customer {
   id: string;
   name: string;
@@ -14,6 +20,7 @@ export interface Customer {
   vehicleRegNo: string;
   insuranceType: InsuranceType;
   othersCategory?: OthersCategory;
+  isCompany?: boolean;
   lastUpdated: string;
 }
 
@@ -32,6 +39,10 @@ export interface Document {
   staffId: string;
   staffName: string;
   othersCategory?: OthersCategory;
+  /** For Others: multiple categories with individual amounts */
+  othersEntries?: OthersEntry[];
+  /** Optional service charge amount */
+  serviceCharge?: number;
   attachmentUrl?: string;
 }
 
