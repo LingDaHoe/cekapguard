@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { X, Download, ShieldCheck, Mail, Phone, MapPin, Loader2, CheckCircle, Fingerprint, Building2 } from 'lucide-react';
-import { SystemConfig, DocType, VehicleType, InsuranceType } from '../types';
+import { X, Download, ShieldCheck, Mail, Phone, MapPin, Loader2, CheckCircle, Fingerprint, Building2, FileText } from 'lucide-react';
+import { SystemConfig, DocType, VehicleType, InsuranceType, OthersCategory } from '../types';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import cekapurusLogo from '../assets/cekapurus.png';
@@ -18,6 +18,7 @@ interface PdfPreviewModalProps {
     vehicleType: VehicleType;
     vehicleRegNo: string;
     insuranceType: InsuranceType;
+    othersCategory?: OthersCategory;
     issuedCompany: string;
     amount: string | number;
     date: string;
@@ -25,6 +26,7 @@ interface PdfPreviewModalProps {
     remarks?: string;
     docType: DocType;
     docNumber?: string;
+    attachmentUrl?: string;
   };
   config: SystemConfig;
 }
@@ -111,6 +113,27 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
   const safeAmount = isNaN(amountValue) ? 0 : amountValue;
   const formattedAmount = safeAmount.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  // Shrink project name / registration mark font when long so it doesn't look bulky
+  const regNoLen = (data.vehicleRegNo || '').length;
+  const projectNameFontClass = regNoLen <= 12 ? 'text-base' : regNoLen <= 20 ? 'text-sm' : regNoLen <= 30 ? 'text-xs' : 'text-[10px]';
+
+  const handleDownloadContractPdf = async () => {
+    if (!data.attachmentUrl) return;
+    try {
+      const res = await fetch(data.attachmentUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `contract_${data.docNumber || 'document'}_${data.customerName.replace(/\s+/g, '_')}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Download contract PDF failed', e);
+      window.open(data.attachmentUrl, '_blank');
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-300 font-poppins">
       <div className="bg-slate-50 w-full max-w-5xl h-[96vh] flex flex-col overflow-hidden rounded-[32px] shadow-2xl border border-white/20">
@@ -131,15 +154,36 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-             <button 
+          <div className="flex items-center gap-2 flex-wrap">
+            <button 
               onClick={handleDownloadPdf}
               disabled={isExporting}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-bold transition-all disabled:opacity-50 uppercase tracking-widest shadow-md"
             >
               {isExporting ? <Loader2 className="animate-spin" size={14} /> : <Download size={14} />}
-              {isExporting ? 'Processing' : 'Export PDF'}
+              {isExporting ? 'Processing' : `Download ${data.docType}`}
             </button>
+            {isViewOnly && data.attachmentUrl && (
+              <>
+                <a
+                  href={data.attachmentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[10px] font-bold transition-all uppercase tracking-widest border border-slate-200"
+                >
+                  <FileText size={14} />
+                  View contract PDF
+                </a>
+                <button
+                  type="button"
+                  onClick={handleDownloadContractPdf}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[10px] font-bold transition-all uppercase tracking-widest border border-slate-200"
+                >
+                  <Download size={14} />
+                  Download contract PDF
+                </button>
+              </>
+            )}
             <button 
               onClick={onClose}
               className="p-2 text-slate-400 hover:text-red-500 rounded-lg transition-colors"
@@ -213,8 +257,8 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                   </p>
                   {data.vehicleRegNo && (
                     <p className="flex items-center gap-3 text-slate-500 font-medium leading-none">
-                      <span className="text-[9px] font-bold uppercase text-slate-400">{data.vehicleType === 'Contractor' ? 'Project:' : 'Plate:'}</span>
-                      <span className="font-bold tracking-wide">{data.vehicleRegNo}</span>
+                      <span className="text-[9px] font-bold uppercase text-slate-400">{data.vehicleType === 'Others' ? 'Project:' : 'Plate:'}</span>
+                      <span className={`font-bold tracking-wide ${projectNameFontClass}`}>{data.vehicleRegNo}</span>
                     </p>
                   )}
                   {data.email && (
@@ -239,14 +283,15 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                     <p className="text-sm font-bold">
                       {data.vehicleType === 'Motor' ? 'Motor Insurance Policy' : 'Project Insurance Policy'}
                       {data.vehicleType === 'Motor' && data.insuranceType && ` • ${data.insuranceType}`}
+                      {data.vehicleType === 'Others' && data.othersCategory && ` • ${data.othersCategory}`}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="text-[8px] font-bold text-blue-600 uppercase tracking-widest mb-1">
-                    {data.vehicleType === 'Contractor' ? 'Project Name' : 'Registration Mark'}
+                    {data.vehicleType === 'Others' ? 'Project Name' : 'Registration Mark'}
                   </p>
-                  <p className="text-base font-bold text-slate-900">{data.vehicleRegNo}</p>
+                  <p className={`font-bold text-slate-900 break-words ${projectNameFontClass}`}>{data.vehicleRegNo}</p>
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-blue-200 flex items-center gap-2">
@@ -264,7 +309,7 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
               
               <div className="flex justify-between gap-10 py-1">
                 <div className="flex-1">
-                  <p className="font-bold text-slate-900 text-sm mb-3">{data.vehicleType === 'Contractor' ? 'Project Insurance' : `${data.insuranceType} Protection Scheme`}</p>
+                  <p className="font-bold text-slate-900 text-sm mb-3">{data.vehicleType === 'Others' ? 'Project Insurance' : `${data.insuranceType} Protection Scheme`}</p>
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-[10px] text-slate-600 leading-relaxed italic">
                     {data.insuranceDetails || 'Standardized insurance protocol application in accordance with registered manifest requirements.'}
                   </div>

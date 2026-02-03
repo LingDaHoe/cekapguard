@@ -33,7 +33,7 @@ import ActivityLogs from './components/ActivityLogs';
 import StaffManagement from './components/StaffManagement';
 import AuthPage from './components/AuthPage';
 import { BackgroundGradientAnimation } from './components/ui/background-gradient-animation';
-import { auth, db } from './services/firebase';
+import { auth, db, uploadDocumentAttachment } from './services/firebase';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { 
   collection, 
@@ -165,7 +165,7 @@ const App: React.FC = () => {
     }
   };
 
-  const addDocument = async (docData: Omit<Document, 'id' | 'docNumber' | 'staffId' | 'staffName'>) => {
+  const addDocument = async (docData: Omit<Document, 'id' | 'docNumber' | 'staffId' | 'staffName' | 'attachmentUrl'>, file?: File) => {
     if (!currentUser) return;
     
     if (!docData.customerId) return;
@@ -173,8 +173,18 @@ const App: React.FC = () => {
     const prefix = docData.type === 'Invoice' ? config.invoicePrefix : config.receiptPrefix;
     const docNumber = `${prefix}${Date.now().toString().slice(-6)}`;
     
+    let attachmentUrl: string | undefined;
+    if (file) {
+      try {
+        attachmentUrl = await uploadDocumentAttachment(file);
+      } catch (e) {
+        console.error('Upload contract PDF failed', e);
+      }
+    }
+    
     const newDoc = {
       ...docData,
+      ...(attachmentUrl && { attachmentUrl }),
       docNumber,
       staffId: currentUser.id,
       staffName: currentUser.name

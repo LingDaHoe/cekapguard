@@ -75,13 +75,15 @@ const DocumentList: React.FC<ListProps> = ({ documents, customers, config, curre
               vehicleType: customer?.vehicleType ?? 'Motor',
               vehicleRegNo: customer?.vehicleRegNo ?? '',
               insuranceType: customer?.insuranceType ?? 'Comprehensive',
+              othersCategory: previewDoc.othersCategory ?? customer?.othersCategory,
               issuedCompany: previewDoc.issuedCompany,
               amount: previewDoc.amount,
               date: previewDoc.date,
               insuranceDetails: previewDoc.insuranceDetails,
               remarks: previewDoc.remarks,
               docType: previewDoc.type,
-              docNumber: previewDoc.docNumber
+              docNumber: previewDoc.docNumber,
+              attachmentUrl: previewDoc.attachmentUrl
             }}
           />
         );

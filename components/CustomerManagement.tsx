@@ -87,6 +87,11 @@ const CustomerManagement: React.FC<CustomerProps> = ({ customers, updateCustomer
                         {customer.insuranceType}
                      </div>
                    )}
+                   {customer.vehicleType === 'Others' && customer.othersCategory && (
+                     <div className="px-3 py-1 bg-slate-100 rounded-xl text-[8px] font-bold text-slate-500 uppercase tracking-widest">
+                        {customer.othersCategory}
+                     </div>
+                   )}
                 </div>
               </div>
 

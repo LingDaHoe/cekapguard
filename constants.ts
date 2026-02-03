@@ -1,4 +1,4 @@
-import { SystemConfig, User } from './types';
+import { SystemConfig, User, OthersCategory } from './types';
 
 export const INITIAL_CONFIG: SystemConfig = {
   companyName: "Cekap Guard Insurance Solutions",
@@ -17,7 +17,8 @@ export const MOCK_USERS: User[] = [
   { id: '3', name: 'Sarah Smith', role: 'Staff' }
 ];
 
-export const VEHICLE_TYPES = ['Motor', 'Contractor'];
+export const VEHICLE_TYPES = ['Motor', 'Others'];
+export const OTHERS_CATEGORIES: OthersCategory[] = ['Public Liability', 'Contractor All Risk', "Workmen's Compensation", 'Bond'];
 export const INSURANCE_TYPES = ['Comprehensive', 'Third Party', 'Theft & Fire'];
 
 export const INSURANCE_COMPANIES = [

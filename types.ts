@@ -1,6 +1,7 @@
 
-export type VehicleType = 'Motor' | 'Contractor';
+export type VehicleType = 'Motor' | 'Others';
 export type InsuranceType = 'Comprehensive' | 'Third Party' | 'Theft & Fire';
+export type OthersCategory = 'Public Liability' | 'Contractor All Risk' | "Workmen's Compensation" | 'Bond';
 export type DocType = 'Invoice' | 'Receipt';
 
 export interface Customer {
@@ -12,6 +13,7 @@ export interface Customer {
   vehicleType: VehicleType;
   vehicleRegNo: string;
   insuranceType: InsuranceType;
+  othersCategory?: OthersCategory;
   lastUpdated: string;
 }
 
@@ -29,6 +31,8 @@ export interface Document {
   remarks: string;
   staffId: string;
   staffName: string;
+  othersCategory?: OthersCategory;
+  attachmentUrl?: string;
 }
 
 export interface ActivityLog {

@@ -15,7 +15,10 @@ import {
   Loader2,
   Fingerprint,
   AlertCircle,
-  Building2
+  Building2,
+  FileText,
+  Upload,
+  X
 } from 'lucide-react';
 import { 
   Customer, 
@@ -23,9 +26,10 @@ import {
   DocType, 
   VehicleType, 
   InsuranceType,
+  OthersCategory,
   SystemConfig 
 } from '../types';
-import { INSURANCE_TYPES, INSURANCE_COMPANIES } from '../constants';
+import { INSURANCE_TYPES, INSURANCE_COMPANIES, OTHERS_CATEGORIES } from '../constants';
 import { suggestInsuranceNotes } from '../services/geminiService';
 import { italicizeFirstWord } from '../App';
 import PdfPreviewModal from './PdfPreviewModal';
@@ -34,7 +38,7 @@ interface CreatorProps {
   customers: Customer[];
   addCustomer: (c: Omit<Customer, 'id' | 'lastUpdated'>) => Promise<Customer>;
   updateCustomer: (c: Customer) => void;
-  addDocument: (d: Omit<Document, 'id' | 'docNumber' | 'staffId' | 'staffName'>) => void;
+  addDocument: (d: Omit<Document, 'id' | 'docNumber' | 'staffId' | 'staffName' | 'attachmentUrl'>, file?: File) => void;
   config: SystemConfig;
 }
 
@@ -62,12 +66,23 @@ const DocumentCreator: React.FC<CreatorProps> = ({
     vehicleType: 'Motor' as VehicleType,
     vehicleRegNo: '',
     insuranceType: 'Comprehensive' as InsuranceType,
+    othersCategory: undefined as OthersCategory | undefined,
     issuedCompany: '',
     amount: '',
     date: new Date().toISOString().split('T')[0],
     remarks: '',
     insuranceDetails: ''
   });
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [contractPreviewUrl, setContractPreviewUrl] = useState<string | null>(null);
+
+  // Revoke object URL when attachment is removed
+  useEffect(() => {
+    if (!attachmentFile && contractPreviewUrl) {
+      URL.revokeObjectURL(contractPreviewUrl);
+      setContractPreviewUrl(null);
+    }
+  }, [attachmentFile, contractPreviewUrl]);
 
   // Check for potential duplicates whenever name or IC changes
   useEffect(() => {
@@ -158,7 +173,8 @@ const DocumentCreator: React.FC<CreatorProps> = ({
       email: c.email || '',
       vehicleType: c.vehicleType,
       vehicleRegNo: c.vehicleRegNo,
-      insuranceType: c.insuranceType
+      insuranceType: c.insuranceType,
+      othersCategory: c.othersCategory
     });
     setSearchQuery('');
     setStep(2);
@@ -198,7 +214,8 @@ const DocumentCreator: React.FC<CreatorProps> = ({
             phone: formData.phone,
             ic: formData.ic,
             vehicleRegNo: formData.vehicleRegNo,
-            insuranceType: formData.insuranceType
+            insuranceType: formData.insuranceType,
+            othersCategory: formData.othersCategory
           });
         } else {
           const newCust = await addCustomer({
@@ -208,7 +225,8 @@ const DocumentCreator: React.FC<CreatorProps> = ({
             email: formData.email,
             vehicleType: formData.vehicleType,
             vehicleRegNo: formData.vehicleRegNo,
-            insuranceType: formData.insuranceType
+            insuranceType: formData.insuranceType,
+            othersCategory: formData.othersCategory
           });
           targetCustomerId = newCust.id;
         }
@@ -220,7 +238,8 @@ const DocumentCreator: React.FC<CreatorProps> = ({
             phone: formData.phone,
             ic: formData.ic,
             vehicleRegNo: formData.vehicleRegNo,
-            insuranceType: formData.insuranceType
+            insuranceType: formData.insuranceType,
+            othersCategory: formData.othersCategory
           });
         }
       }
@@ -236,8 +255,9 @@ const DocumentCreator: React.FC<CreatorProps> = ({
         date: formData.date,
         amount: parseFloat(formData.amount) || 0,
         insuranceDetails: formData.insuranceDetails,
-        remarks: formData.remarks
-      });
+        remarks: formData.remarks,
+        ...(formData.othersCategory && { othersCategory: formData.othersCategory })
+      }, attachmentFile || undefined);
       setIsPreviewOpen(false);
     } catch (error) {
       console.error("Finalization Error:", error);
@@ -252,7 +272,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
   // Step validation
   const isStep1Valid = formData.customerName && formData.phone && formData.ic;
   const isStep2Valid = formData.vehicleType && formData.issuedCompany && (
-    formData.vehicleType === 'Contractor' ? formData.vehicleRegNo : (formData.insuranceType && formData.vehicleRegNo)
+    formData.vehicleType === 'Others' ? (formData.othersCategory && formData.vehicleRegNo) : (formData.insuranceType && formData.vehicleRegNo)
   );
   const isStep3Valid = formData.amount && formData.insuranceDetails;
 
@@ -431,11 +451,11 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                     </button>
                     <button 
                       type="button"
-                      onClick={() => setFormData({...formData, vehicleType: 'Contractor'})}
-                      className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2 ${formData.vehicleType === 'Contractor' ? 'border-blue-600 bg-blue-500/10 text-blue-600' : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
+                      onClick={() => setFormData({...formData, vehicleType: 'Others'})}
+                      className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2 ${formData.vehicleType === 'Others' ? 'border-blue-600 bg-blue-500/10 text-blue-600' : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
                     >
                       <Briefcase size={24} />
-                      <span className="text-[9px] font-bold uppercase">Contractor</span>
+                      <span className="text-[9px] font-bold uppercase">Others</span>
                     </button>
                   </div>
                 </div>
@@ -485,18 +505,34 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                     </div>
                   </>
                 )}
-                {formData.vehicleType === 'Contractor' && (
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Project Name <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                      <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                      <input 
-                        type="text" placeholder="Project name" className={`${inputClass} pl-9`}
-                        value={formData.vehicleRegNo}
-                        onChange={e => setFormData({...formData, vehicleRegNo: e.target.value})}
-                      />
+                {formData.vehicleType === 'Others' && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Category <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                        <select 
+                          className={`${inputClass} pl-9 appearance-none`}
+                          value={formData.othersCategory ?? ''}
+                          onChange={e => setFormData({...formData, othersCategory: (e.target.value || undefined) as OthersCategory | undefined})}
+                        >
+                          <option value="">Select category...</option>
+                          {OTHERS_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                        </select>
+                      </div>
                     </div>
-                  </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Project Name <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                        <input 
+                          type="text" placeholder="Project name" className={`${inputClass} pl-9`}
+                          value={formData.vehicleRegNo}
+                          onChange={e => setFormData({...formData, vehicleRegNo: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -559,6 +595,53 @@ const DocumentCreator: React.FC<CreatorProps> = ({
               </div>
             </div>
 
+            <div className="space-y-3 pt-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                <FileText size={12} /> Attach contract PDF <span className="text-slate-300 font-normal">(optional)</span>
+              </label>
+              <div className="flex items-center gap-3 flex-wrap">
+                <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors">
+                  <Upload size={14} />
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={e => {
+                      const f = e.target.files?.[0];
+                      setAttachmentFile(f || null);
+                      e.target.value = '';
+                    }}
+                  />
+                  {attachmentFile ? 'Change file' : 'Choose PDF'}
+                </label>
+                {attachmentFile && (
+                  <>
+                    <span className="text-[10px] font-bold text-slate-500 truncate max-w-[200px]" title={attachmentFile.name}>
+                      {attachmentFile.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = URL.createObjectURL(attachmentFile);
+                        setContractPreviewUrl(url);
+                      }}
+                      className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100 transition-colors"
+                      title="Preview PDF"
+                    >
+                      <Eye size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAttachmentFile(null)}
+                      className="text-[10px] font-bold text-red-500 hover:underline uppercase"
+                    >
+                      Remove
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
             <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
               <button type="button" onClick={() => setStep(2)} className="text-slate-400 hover:text-slate-600 font-bold text-[10px] uppercase">Re-Asset</button>
               <button 
@@ -573,6 +656,32 @@ const DocumentCreator: React.FC<CreatorProps> = ({
           </div>
         )}
       </div>
+
+      {/* Contract PDF preview popup (draft) */}
+      {contractPreviewUrl && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden border border-slate-200">
+            <div className="flex justify-between items-center px-4 py-3 border-b border-slate-200 bg-slate-50 shrink-0">
+              <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Contract PDF reference</p>
+              <button
+                type="button"
+                onClick={() => {
+                  URL.revokeObjectURL(contractPreviewUrl);
+                  setContractPreviewUrl(null);
+                }}
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <iframe
+              src={contractPreviewUrl}
+              title="Contract PDF preview"
+              className="flex-1 w-full min-h-0 border-0"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
