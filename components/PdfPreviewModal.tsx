@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { X, Download, ShieldCheck, Mail, Phone, MapPin, Loader2, CheckCircle, Fingerprint, Building2, FileText } from 'lucide-react';
+import { X, Download, ShieldCheck, Loader2, FileText } from 'lucide-react';
 import { SystemConfig, DocType, VehicleType, InsuranceType, OthersCategory, OthersEntry } from '../types';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -213,15 +213,19 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                </span>
             </div>
 
-            {/* Document Header */}
+            {/* Document Header: logo, company name, then issuing provider details below */}
             <div className="flex justify-between items-start mb-10 relative z-10">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-white border border-slate-100 rounded-xl flex items-center justify-center p-2 shadow-sm overflow-hidden">
+              <div className="flex gap-4">
+                <div className="w-16 h-16 bg-white border border-slate-100 rounded-xl flex items-center justify-center p-2 shadow-sm overflow-hidden flex-shrink-0">
                    <img src={logoDataUrl || cekapurusLogo} alt="Logo" className="max-w-full max-h-full object-contain" />
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-blue-700 leading-tight">{config.companyName}</h1>
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Certified Insurance Protocol</p>
+                  <div className="mt-3 space-y-1 text-xs text-slate-600 font-medium leading-relaxed">
+                    <p>{config.address}</p>
+                    <p>{config.contact}</p>
+                  </div>
                 </div>
               </div>
               <div className="text-right">
@@ -233,52 +237,32 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
               </div>
             </div>
 
-            {/* Details Grid */}
-            <div className="grid grid-cols-2 gap-10 mb-8 border-t border-slate-100 pt-8 relative z-10">
-              <div className="border-l-4 border-blue-600 pl-5">
-                <h3 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">Issuing Provider</h3>
-                <div className="space-y-2 text-xs text-slate-600 font-medium leading-relaxed">
-                  <p className="flex items-start gap-3">
-                    <div className="w-4 shrink-0 flex justify-center"><MapPin size={10} className="text-blue-500 mt-0.5" /></div>
-                    <span>{config.address}</span>
-                  </p>
-                  <p className="flex items-center gap-3">
-                    <div className="w-4 shrink-0 flex justify-center"><Phone size={10} className="text-blue-500" /></div>
-                    <span>{config.contact}</span>
-                  </p>
-                </div>
-              </div>
+            {/* Insured Entity only */}
+            <div className="border-t border-slate-100 pt-8 mb-8 relative z-10">
               <div className="border-l-4 border-slate-900 pl-5">
                 <h3 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">Insured Entity</h3>
                 <div className="space-y-2 text-xs">
                   <p className="text-lg font-bold text-slate-900 leading-none mb-2">{data.customerName}</p>
                   {!data.isCompany && (
-                    <p className="flex items-center gap-3 text-slate-500 font-bold uppercase text-[9px] leading-none">
-                      <div className="w-4 shrink-0 flex justify-center"><Fingerprint size={10} className="text-blue-500" /></div>
-                      <span>IC NO: {data.ic || '—'}</span>
+                    <p className="text-slate-500 font-medium uppercase text-[9px] leading-none">
+                      IC NO: {data.ic || '—'}
                     </p>
                   )}
-                  <p className="flex items-center gap-3 text-slate-500 font-medium leading-none">
-                    <div className="w-4 shrink-0 flex justify-center"><Phone size={10} className="text-blue-500" /></div>
-                    <span>{data.phone}</span>
-                  </p>
+                  <p className="text-slate-500 font-medium leading-none">{data.phone}</p>
                   {data.vehicleRegNo && data.vehicleType === 'Motor' && (
-                    <p className="flex items-center gap-3 text-slate-500 font-medium leading-none">
-                      <span className="text-[9px] font-bold uppercase text-slate-400">Plate:</span>
-                      <span className={`font-bold tracking-wide ${projectNameFontClass}`}>{data.vehicleRegNo}</span>
+                    <p className="text-slate-500 font-medium leading-none">
+                      <span className="text-[9px] uppercase text-slate-400">Plate:</span>{' '}
+                      <span className={`italic tracking-wide ${projectNameFontClass}`}>{data.vehicleRegNo}</span>
                     </p>
                   )}
                   {data.vehicleType === 'Others' && (categoriesLabel || hasOthersEntries) && (
-                    <p className="flex items-center gap-3 text-slate-500 font-medium leading-none">
-                      <span className="text-[9px] font-bold uppercase text-slate-400">Categories:</span>
-                      <span className="font-bold text-slate-700">{hasOthersEntries ? data.othersEntries!.map(e => e.category).join(', ') : categoriesLabel}</span>
+                    <p className="text-slate-500 font-medium leading-none">
+                      <span className="text-[9px] uppercase text-slate-400">Categories:</span>{' '}
+                      <span className="text-slate-700">{hasOthersEntries ? data.othersEntries!.map(e => e.category).join(', ') : categoriesLabel}</span>
                     </p>
                   )}
                   {data.email && (
-                    <p className="flex items-center gap-3 text-slate-500 font-medium leading-none">
-                      <div className="w-4 shrink-0 flex justify-center"><Mail size={10} className="text-blue-500" /></div>
-                      <span className="truncate">{data.email}</span>
-                    </p>
+                    <p className="text-slate-500 font-medium leading-none truncate">{data.email}</p>
                   )}
                 </div>
               </div>
@@ -288,12 +272,9 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
             <div className="bg-blue-100 border border-blue-200 text-slate-900 rounded-2xl p-6 mb-8 shadow-lg relative z-10">
               <div className="flex justify-between items-center gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-200/80 rounded-xl flex items-center justify-center border border-blue-200">
-                    <ShieldCheck size={24} className="text-blue-700" />
-                  </div>
                   <div>
-                    <p className="text-[8px] font-bold text-blue-600 uppercase tracking-widest mb-1">Coverage Classification</p>
-                    <p className="text-sm font-bold">
+                    <p className="text-[8px] text-blue-600 uppercase tracking-widest mb-1">Coverage Classification</p>
+                    <p className={`text-sm break-words ${projectNameFontClass}`}>
                       {data.vehicleType === 'Motor' ? 'Motor Insurance Policy' : 'Project Insurance Policy'}
                       {data.vehicleType === 'Motor' && data.insuranceType && ` • ${data.insuranceType}`}
                       {data.vehicleType === 'Others' && (hasOthersEntries ? ` • ${data.othersEntries!.map(e => e.category).join(', ')}` : data.othersCategory && ` • ${data.othersCategory}`)}
@@ -301,15 +282,14 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-[8px] font-bold text-blue-600 uppercase tracking-widest mb-1">
+                  <p className="text-[8px] text-blue-600 uppercase tracking-widest mb-1">
                     {data.vehicleType === 'Others' ? 'Project Name' : 'Registration Mark'}
                   </p>
-                  <p className={`font-bold text-slate-900 break-words ${projectNameFontClass}`}>{data.vehicleRegNo}</p>
+                  <p className={`italic text-slate-900 break-words ${projectNameFontClass}`}>{data.vehicleRegNo}</p>
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-blue-200 flex items-center gap-2">
-                 <Building2 size={12} className="text-blue-600" />
-                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Issued by: <span className="text-slate-900 ml-1 font-bold">{data.issuedCompany}</span></p>
+                 <p className="text-[10px] uppercase tracking-wider text-slate-600">Issued by: <span className="text-slate-900 ml-1">{data.issuedCompany}</span></p>
               </div>
             </div>
 
