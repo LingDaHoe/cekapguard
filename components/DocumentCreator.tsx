@@ -78,7 +78,6 @@ const DocumentCreator: React.FC<CreatorProps> = ({
     date: new Date().toISOString().split('T')[0],
     remarks: '',
     insuranceDetails: '',
-    serviceChargeEnabled: false,
     serviceChargeAmount: ''
   });
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
@@ -261,12 +260,12 @@ const DocumentCreator: React.FC<CreatorProps> = ({
       if (!targetCustomerId) throw new Error("Entity link failed.");
 
       const amount = formData.vehicleType === 'Motor'
-        ? (parseFloat(formData.amount) || 0) + (formData.serviceChargeEnabled ? parseFloat(formData.serviceChargeAmount) || 0 : 0)
-        : formData.othersEntries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) + (formData.serviceChargeEnabled ? parseFloat(formData.serviceChargeAmount) || 0 : 0);
+        ? (parseFloat(formData.amount) || 0) + serviceChargeNum
+        : formData.othersEntries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) + serviceChargeNum;
       const othersEntriesPayload = formData.vehicleType === 'Others' && formData.othersEntries.length > 0
         ? formData.othersEntries.map(e => ({ category: e.category, amount: parseFloat(e.amount) || 0 }))
         : undefined;
-      const serviceChargePayload = formData.serviceChargeEnabled ? (parseFloat(formData.serviceChargeAmount) || 0) : undefined;
+      const serviceChargePayload = serviceChargeNum > 0 ? serviceChargeNum : undefined;
       addDocument({
         type: docType,
         customerId: targetCustomerId,
@@ -301,9 +300,10 @@ const DocumentCreator: React.FC<CreatorProps> = ({
   const isStep3Valid = formData.vehicleType === 'Motor'
     ? formData.amount && formData.insuranceDetails
     : formData.insuranceDetails;
+  const serviceChargeNum = parseFloat(formData.serviceChargeAmount) || 0;
   const totalAmount = formData.vehicleType === 'Motor'
-    ? (parseFloat(formData.amount) || 0) + (formData.serviceChargeEnabled ? parseFloat(formData.serviceChargeAmount) || 0 : 0)
-    : formData.othersEntries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) + (formData.serviceChargeEnabled ? parseFloat(formData.serviceChargeAmount) || 0 : 0);
+    ? (parseFloat(formData.amount) || 0) + serviceChargeNum
+    : formData.othersEntries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) + serviceChargeNum;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-12">
@@ -316,7 +316,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
           ...formData,
           amount: totalAmount,
           othersEntries: formData.vehicleType === 'Others' ? formData.othersEntries.map(e => ({ category: e.category, amount: parseFloat(e.amount) || 0 })) : undefined,
-          serviceCharge: formData.serviceChargeEnabled ? (parseFloat(formData.serviceChargeAmount) || 0) : undefined,
+          serviceCharge: serviceChargeNum > 0 ? serviceChargeNum : undefined,
           docType
         }}
       />
@@ -571,9 +571,9 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                       <div className="relative">
                         <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                         <input 
-                          type="text" placeholder="Project name" className={`${inputClass} pl-9`}
+                          type="text" placeholder="Project name" className={`${inputClass} pl-9 uppercase`}
                           value={formData.vehicleRegNo}
-                          onChange={e => setFormData({...formData, vehicleRegNo: e.target.value})}
+                          onChange={e => setFormData({...formData, vehicleRegNo: e.target.value.toUpperCase()})}
                         />
                       </div>
                     </div>
@@ -762,33 +762,21 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                 </div>
               )}
 
-              <div className="space-y-3">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">Service charge <span className="text-slate-300 font-normal">(optional)</span></label>
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.serviceChargeEnabled}
-                      onChange={e => setFormData({...formData, serviceChargeEnabled: e.target.checked})}
-                      className="rounded border-slate-300 text-blue-600"
-                    />
-                    <span className="text-xs font-medium text-slate-600">Add service charge</span>
-                  </label>
-                  {formData.serviceChargeEnabled && (
-                    <div className="relative w-32">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">RM</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        className={`${inputClass} pl-8 text-sm`}
-                        value={formData.serviceChargeAmount}
-                        onChange={e => setFormData({...formData, serviceChargeAmount: e.target.value})}
-                      />
-                    </div>
-                  )}
+              <div className="space-y-3 p-4 rounded-xl bg-slate-50/80 border border-slate-100">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 block">Service charge <span className="text-slate-300 font-normal">(optional)</span></label>
+                <div className="relative max-w-[140px]">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-medium">RM</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition-all"
+                    value={formData.serviceChargeAmount}
+                    onChange={e => setFormData({...formData, serviceChargeAmount: e.target.value})}
+                  />
                 </div>
-                <p className="text-[10px] font-bold text-blue-600">Total: RM {totalAmount.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="text-sm font-bold text-blue-600 pt-1 border-t border-slate-200/80 mt-2">Total: RM {totalAmount.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
 
               <div className="space-y-3 md:col-span-2">
