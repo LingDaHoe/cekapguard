@@ -274,7 +274,7 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                 <div className="flex items-center gap-4">
                   <div>
                     <p className="text-[8px] text-blue-600 uppercase tracking-widest mb-1">Coverage Classification</p>
-                    <p className={`text-sm break-words ${projectNameFontClass}`}>
+                    <p className={`break-words ${projectNameFontClass}`}>
                       {data.vehicleType === 'Motor' ? 'Motor Insurance Policy' : 'Project Insurance Policy'}
                       {data.vehicleType === 'Motor' && data.insuranceType && ` • ${data.insuranceType}`}
                       {data.vehicleType === 'Others' && (hasOthersEntries ? ` • ${data.othersEntries!.map(e => e.category).join(', ')}` : data.othersCategory && ` • ${data.othersCategory}`)}
