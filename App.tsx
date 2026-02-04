@@ -551,7 +551,7 @@ const App: React.FC = () => {
               <ActivityLogs logs={logs} />
             )}
             {activeTab === 'settings' && currentUser.role === 'Owner' && (
-              <AdminSettings config={config} setConfig={handleUpdateConfig} onRenumberReceipts={renumberReceipts} />
+              <AdminSettings config={config} setConfig={handleUpdateConfig} />
             )}
           </div>
         </main>

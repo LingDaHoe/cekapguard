@@ -9,7 +9,9 @@ import {
   Fingerprint,
   Banknote,
   CheckCircle,
-  Loader2
+  Loader2,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Document, SystemConfig, User, Customer } from '../types';
 import { italicizeFirstWord } from '../App';
@@ -28,6 +30,9 @@ const DocumentList: React.FC<ListProps> = ({ documents, customers, config, curre
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [invoicesMinimized, setInvoicesMinimized] = useState(false);
+
+  const hasAnyInvoices = documents.some(d => d.type === 'Invoice');
 
   const getCustomerByDoc = (doc: Document) => customers.find(c => c.id === doc.customerId);
 
@@ -122,21 +127,34 @@ const DocumentList: React.FC<ListProps> = ({ documents, customers, config, curre
         </div>
       </div>
 
-      {/* Invoices section – audit: invoices only */}
+      {/* Invoices section – only show when there is invoice data */}
+      {hasAnyInvoices && (
       <div className="glass-card border border-blue-200 rounded-xl overflow-hidden shadow-sm bg-white/60">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-blue-50/50">
           <h3 className="font-title text-lg text-slate-900 flex items-center gap-2">
             <FileText size={20} className="text-blue-600" />
             <span className="text-blue-600 italic font-medium">Invoices</span>
           </h3>
-          <button
-            onClick={() => exportCSV('Invoice', filteredInvoices)}
-            disabled={filteredInvoices.length === 0}
-            className="btn-premium flex items-center gap-2 px-4 py-2 rounded-lg text-xs disabled:opacity-50"
-          >
-            <Download size={14} /> Export Invoices
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setInvoicesMinimized(v => !v)}
+              className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50/50 rounded-lg transition-colors"
+              title={invoicesMinimized ? 'Expand section' : 'Minimize section'}
+              aria-label={invoicesMinimized ? 'Expand' : 'Minimize'}
+            >
+              {invoicesMinimized ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+            </button>
+            <button
+              onClick={() => exportCSV('Invoice', filteredInvoices)}
+              disabled={filteredInvoices.length === 0}
+              className="btn-premium flex items-center gap-2 px-4 py-2 rounded-lg text-xs disabled:opacity-50"
+            >
+              <Download size={14} /> Export Invoices
+            </button>
+          </div>
         </div>
+        {!invoicesMinimized && (
         <div className="overflow-x-auto">
           <table className="w-full text-left table-auto">
             <thead>
@@ -211,7 +229,9 @@ const DocumentList: React.FC<ListProps> = ({ documents, customers, config, curre
             </div>
           )}
         </div>
+        )}
       </div>
+      )}
 
       {/* Receipts section – audit: receipts only */}
       <div className="glass-card border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white/60">
