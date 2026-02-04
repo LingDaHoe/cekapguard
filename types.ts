@@ -44,6 +44,10 @@ export interface Document {
   /** Optional service charge amount */
   serviceCharge?: number;
   attachmentUrl?: string;
+  /** When invoice was marked paid (ISO date); receipt id and number created */
+  paidAt?: string;
+  receiptId?: string;
+  receiptDocNumber?: string;
 }
 
 export interface ActivityLog {

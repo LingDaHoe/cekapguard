@@ -142,6 +142,8 @@ const App: React.FC = () => {
     const docsRef = query(collection(db, "documents"), orderBy("date", "desc"));
     const unsubDocs = onSnapshot(docsRef, (snapshot) => {
       const data = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Document));
+      const docNum = (doc: Document) => parseInt(doc.docNumber.replace(/\D/g, ''), 10) || 0;
+      data.sort((a, b) => docNum(b) - docNum(a));
       setDocuments(data);
     }, handleError);
 
@@ -167,9 +169,9 @@ const App: React.FC = () => {
     }
   };
 
-  const addDocument = async (docData: Omit<Document, 'id' | 'docNumber' | 'staffId' | 'staffName' | 'attachmentUrl'>, file?: File) => {
+  const addDocument = async (docData: Omit<Document, 'id' | 'docNumber' | 'staffId' | 'staffName' | 'attachmentUrl'>, file?: File): Promise<{ id: string; docNumber: string } | void> => {
     if (!currentUser) return;
-    
+
     if (!docData.customerId) return;
 
     const prefix = docData.type === 'Invoice' ? config.invoicePrefix : config.receiptPrefix;
@@ -183,7 +185,7 @@ const App: React.FC = () => {
       return next;
     });
     const docNumber = `${prefix}${String(nextNum).padStart(5, '0')}`;
-    
+
     let attachmentUrl: string | undefined;
     if (file) {
       try {
@@ -192,7 +194,7 @@ const App: React.FC = () => {
         console.error('Upload contract PDF failed', e);
       }
     }
-    
+
     const newDocRaw = {
       ...docData,
       ...(attachmentUrl && { attachmentUrl }),
@@ -205,18 +207,61 @@ const App: React.FC = () => {
     );
 
     try {
-      await addDoc(collection(db, "documents"), newDoc);
-      await addDoc(collection(db, "logs"), {
+      const docRef = await addDoc(collection(db, 'documents'), newDoc);
+      await addDoc(collection(db, 'logs'), {
         timestamp: new Date().toISOString(),
         staffName: currentUser.name,
         action: `Created ${docData.type}`,
         docId: docNumber
       });
       setActiveTab('documents');
+      return { id: docRef.id, docNumber };
     } catch (e) {
-      console.error("Error adding document", e);
+      console.error('Error adding document', e);
       throw e;
     }
+  };
+
+  const updateDocument = async (docId: string, data: Partial<Document>) => {
+    const clean = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
+    try {
+      await setDoc(doc(db, 'documents', docId), clean, { merge: true });
+    } catch (e) {
+      console.error('Error updating document', e);
+      throw e;
+    }
+  };
+
+  const markInvoicePaid = async (invoice: Document) => {
+    if (invoice.type !== 'Invoice' || invoice.paidAt) return;
+    const today = new Date().toISOString().split('T')[0];
+    const receiptPayload: Omit<Document, 'id' | 'docNumber' | 'staffId' | 'staffName' | 'attachmentUrl'> = {
+      type: 'Receipt',
+      customerId: invoice.customerId,
+      customerName: invoice.customerName,
+      customerIc: invoice.customerIc,
+      issuedCompany: invoice.issuedCompany,
+      date: today,
+      amount: invoice.amount,
+      insuranceDetails: invoice.insuranceDetails,
+      remarks: invoice.remarks,
+      ...(invoice.othersEntries && { othersEntries: invoice.othersEntries }),
+      ...(invoice.serviceCharge != null && { serviceCharge: invoice.serviceCharge })
+    };
+    const result = await addDocument(receiptPayload);
+    if (!result) return;
+    await updateDocument(invoice.id, {
+      paidAt: new Date().toISOString(),
+      receiptId: result.id,
+      receiptDocNumber: result.docNumber
+    });
+    await addDoc(collection(db, 'logs'), {
+      timestamp: new Date().toISOString(),
+      staffName: currentUser!.name,
+      action: 'Invoice marked paid',
+      docId: invoice.docNumber,
+      receiptId: result.docNumber
+    });
   };
 
   const addCustomer = async (customerData: Omit<Customer, 'id' | 'lastUpdated'>): Promise<Customer> => {
@@ -490,6 +535,7 @@ const App: React.FC = () => {
                 customers={customers}
                 config={config} 
                 currentUser={currentUser}
+                onMarkInvoicePaid={markInvoicePaid}
               />
             )}
             {activeTab === 'customers' && (
