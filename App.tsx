@@ -44,7 +44,9 @@ import {
   orderBy, 
   onSnapshot,
   getDocs,
-  where
+  where,
+  runTransaction,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 export const italicizeFirstWord = (text: string) => {
@@ -171,8 +173,16 @@ const App: React.FC = () => {
     if (!docData.customerId) return;
 
     const prefix = docData.type === 'Invoice' ? config.invoicePrefix : config.receiptPrefix;
-    const uniqueSuffix = `${Date.now().toString().slice(-6)}${String(1000 + Math.floor(Math.random() * 9000))}`;
-    const docNumber = `${prefix}${uniqueSuffix}`;
+    const counterKey = docData.type === 'Invoice' ? 'invoice' : 'receipt';
+    const docCountersRef = doc(db, 'settings', 'docCounters');
+    const nextNum = await runTransaction(db, async (tx) => {
+      const snap = await tx.get(docCountersRef);
+      const current = snap.exists() ? snap.data() : { invoice: 0, receipt: 0 };
+      const next = ((current[counterKey] ?? 0) as number) + 1;
+      tx.set(docCountersRef, { ...current, [counterKey]: next }, { merge: true });
+      return next;
+    });
+    const docNumber = `${prefix}${String(nextNum).padStart(5, '0')}`;
     
     let attachmentUrl: string | undefined;
     if (file) {
@@ -243,6 +253,21 @@ const App: React.FC = () => {
     } catch (e) {
       console.error("Error updating config", e);
     }
+  };
+
+  const renumberReceipts = async () => {
+    const prefix = config.receiptPrefix || 'REC-';
+    const q = query(
+      collection(db, 'documents'),
+      where('type', '==', 'Receipt')
+    );
+    const snap = await getDocs(q);
+    const receipts = snap.docs.map(d => ({ id: d.id, ...d.data() } as { id: string; date: string; [k: string]: unknown }));
+    receipts.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    for (let i = 0; i < receipts.length; i++) {
+      await setDoc(doc(db, 'documents', receipts[i].id), { docNumber: `${prefix}${String(i + 1).padStart(5, '0')}` }, { merge: true });
+    }
+    await setDoc(doc(db, 'settings', 'docCounters'), { receipt: receipts.length }, { merge: true });
   };
 
   const menuGroups = [
@@ -480,7 +505,7 @@ const App: React.FC = () => {
               <ActivityLogs logs={logs} />
             )}
             {activeTab === 'settings' && currentUser.role === 'Owner' && (
-              <AdminSettings config={config} setConfig={handleUpdateConfig} />
+              <AdminSettings config={config} setConfig={handleUpdateConfig} onRenumberReceipts={renumberReceipts} />
             )}
           </div>
         </main>

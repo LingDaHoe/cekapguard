@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Image as ImageIcon, Building, MapPin, Phone, FileText, CheckCircle2 } from 'lucide-react';
+import { Save, Image as ImageIcon, Building, MapPin, Phone, FileText, CheckCircle2, RefreshCw, Loader2 } from 'lucide-react';
 import { SystemConfig } from '../types';
 import { italicizeFirstWord } from '../App';
 import cekapurusLogo from '../assets/cekapurus.png';
@@ -7,11 +7,30 @@ import cekapurusLogo from '../assets/cekapurus.png';
 interface SettingsProps {
   config: SystemConfig;
   setConfig: (config: SystemConfig) => void;
+  onRenumberReceipts?: () => Promise<void>;
 }
 
-const AdminSettings: React.FC<SettingsProps> = ({ config, setConfig }) => {
+const AdminSettings: React.FC<SettingsProps> = ({ config, setConfig, onRenumberReceipts }) => {
   const [localConfig, setLocalConfig] = useState(config);
   const [showSaved, setShowSaved] = useState(false);
+  const [renumbering, setRenumbering] = useState(false);
+  const [renumberDone, setRenumberDone] = useState(false);
+
+  const handleRenumberReceipts = async () => {
+    if (!onRenumberReceipts) return;
+    setRenumbering(true);
+    setRenumberDone(false);
+    try {
+      await onRenumberReceipts();
+      setRenumberDone(true);
+      setTimeout(() => setRenumberDone(false), 5000);
+    } catch (e) {
+      console.error('Renumber receipts failed', e);
+      alert('Failed to renumber receipts. Check console.');
+    } finally {
+      setRenumbering(false);
+    }
+  };
 
   const handleSave = () => {
     setConfig(localConfig);
@@ -130,6 +149,25 @@ const AdminSettings: React.FC<SettingsProps> = ({ config, setConfig }) => {
           </button>
         </div>
       </div>
+
+      {onRenumberReceipts && (
+        <div className="glass-card p-6 rounded-2xl border border-amber-200 bg-amber-50/50 mt-8">
+          <h4 className="font-title text-lg text-slate-900 mb-2">Data maintenance</h4>
+          <p className="text-xs text-slate-600 mb-4">
+            Renumber all existing receipts to {config.receiptPrefix || 'REC-'}00001, 00002, … (oldest first). The next new receipt will get the next number.
+          </p>
+          <button
+            type="button"
+            onClick={handleRenumberReceipts}
+            disabled={renumbering}
+            className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors"
+          >
+            {renumbering ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+            {renumbering ? 'Renumbering…' : 'Renumber existing receipts'}
+          </button>
+          {renumberDone && <p className="text-emerald-600 text-xs font-medium mt-2">Done. Next receipt will be the next number.</p>}
+        </div>
+      )}
 
       <div className="bg-blue-600/5 p-6 rounded-2xl border border-blue-100 text-center">
         <p className="text-[10px] text-blue-900/50 font-semibold uppercase tracking-widest">
