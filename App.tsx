@@ -183,13 +183,16 @@ const App: React.FC = () => {
       }
     }
     
-    const newDoc = {
+    const newDocRaw = {
       ...docData,
       ...(attachmentUrl && { attachmentUrl }),
       docNumber,
       staffId: currentUser.id,
       staffName: currentUser.name
     };
+    const newDoc = Object.fromEntries(
+      Object.entries(newDocRaw).filter(([, v]) => v !== undefined)
+    );
 
     try {
       await addDoc(collection(db, "documents"), newDoc);
@@ -207,13 +210,13 @@ const App: React.FC = () => {
   };
 
   const addCustomer = async (customerData: Omit<Customer, 'id' | 'lastUpdated'>): Promise<Customer> => {
-    const newCustomer = {
-      ...customerData,
-      lastUpdated: new Date().toISOString()
-    };
+    const withTimestamp = { ...customerData, lastUpdated: new Date().toISOString() };
+    const newCustomer = Object.fromEntries(
+      Object.entries(withTimestamp).filter(([, v]) => v !== undefined)
+    ) as Customer & { lastUpdated: string };
     try {
       const docRef = await addDoc(collection(db, "customers"), newCustomer);
-      return { ...newCustomer, id: docRef.id } as Customer;
+      return { ...withTimestamp, id: docRef.id } as Customer;
     } catch (e) {
       console.error("Error adding customer", e);
       throw e;
@@ -222,11 +225,12 @@ const App: React.FC = () => {
 
   const updateCustomer = async (updated: Customer) => {
     const { id, ...data } = updated;
+    const withTimestamp = { ...data, lastUpdated: new Date().toISOString() };
+    const cleanData = Object.fromEntries(
+      Object.entries(withTimestamp).filter(([, v]) => v !== undefined)
+    );
     try {
-      await setDoc(doc(db, "customers", id), {
-        ...data,
-        lastUpdated: new Date().toISOString()
-      }, { merge: true });
+      await setDoc(doc(db, "customers", id), cleanData, { merge: true });
     } catch (e) {
       console.error("Error updating customer", e);
       throw e;
