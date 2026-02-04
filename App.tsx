@@ -171,7 +171,8 @@ const App: React.FC = () => {
     if (!docData.customerId) return;
 
     const prefix = docData.type === 'Invoice' ? config.invoicePrefix : config.receiptPrefix;
-    const docNumber = `${prefix}${Date.now().toString().slice(-6)}`;
+    const uniqueSuffix = `${Date.now().toString().slice(-6)}${String(1000 + Math.floor(Math.random() * 9000))}`;
+    const docNumber = `${prefix}${uniqueSuffix}`;
     
     let attachmentUrl: string | undefined;
     if (file) {
@@ -201,6 +202,7 @@ const App: React.FC = () => {
       setActiveTab('documents');
     } catch (e) {
       console.error("Error adding document", e);
+      throw e;
     }
   };
 
@@ -227,6 +229,7 @@ const App: React.FC = () => {
       }, { merge: true });
     } catch (e) {
       console.error("Error updating customer", e);
+      throw e;
     }
   };
 

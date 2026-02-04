@@ -280,9 +280,16 @@ const DocumentCreator: React.FC<CreatorProps> = ({
         ...(serviceChargePayload !== undefined && serviceChargePayload > 0 && { serviceCharge: serviceChargePayload })
       }, attachmentFile || undefined);
       setIsPreviewOpen(false);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Finalization Error:", error);
-      alert("Failed to finalize document. Duplicate protection triggered or connection error.");
+      const msg = error instanceof Error ? error.message : String(error);
+      const isNetwork = /network|unavailable|failed to fetch|connection/i.test(msg);
+      const hint = isNetwork
+        ? " Check your internet connection and try again."
+        : msg
+          ? ` ${msg}`
+          : "";
+      alert(`Failed to finalize document.${hint}`);
     } finally {
       setIsFinalizing(false);
     }
