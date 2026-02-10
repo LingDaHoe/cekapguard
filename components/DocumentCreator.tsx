@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Car, 
-  Briefcase, 
-  CheckCircle2, 
-  ChevronRight, 
-  Sparkles, 
-  ArrowLeft, 
-  UserPlus, 
-  ShieldCheck, 
-  CreditCard, 
-  Target, 
+import {
+  Search,
+  Car,
+  Briefcase,
+  CheckCircle2,
+  ChevronRight,
+  Sparkles,
+  ArrowLeft,
+  UserPlus,
+  ShieldCheck,
+  CreditCard,
+  Target,
   Eye,
   Loader2,
   Fingerprint,
@@ -22,15 +22,15 @@ import {
   Plus,
   Trash2
 } from 'lucide-react';
-import { 
-  Customer, 
-  Document, 
-  DocType, 
-  VehicleType, 
+import {
+  Customer,
+  Document,
+  DocType,
+  VehicleType,
   InsuranceType,
   OthersCategory,
   OthersEntry,
-  SystemConfig 
+  SystemConfig
 } from '../types';
 import { INSURANCE_TYPES, INSURANCE_COMPANIES, OTHERS_CATEGORIES } from '../constants';
 import { suggestInsuranceNotes } from '../services/geminiService';
@@ -45,12 +45,12 @@ interface CreatorProps {
   config: SystemConfig;
 }
 
-const DocumentCreator: React.FC<CreatorProps> = ({ 
-  customers, 
-  addCustomer, 
-  updateCustomer, 
+const DocumentCreator: React.FC<CreatorProps> = ({
+  customers,
+  addCustomer,
+  updateCustomer,
   addDocument,
-  config 
+  config
 }) => {
   const [step, setStep] = useState(1);
   const [docType, setDocType] = useState<DocType>('Invoice');
@@ -59,7 +59,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<Customer | null>(null);
-  
+
   type OthersEntryForm = { category: OthersCategory; amount: string };
   const [formData, setFormData] = useState({
     customerId: '',
@@ -99,7 +99,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
       return;
     }
 
-    if (!formData.isCompany && formData.ic && formData.ic.length >= 12) {
+    if (!formData.isCompany && formData.ic && formData.ic.length >= 3) {
       const match = customers.find(c => c.ic === formData.ic);
       if (match) {
         setDuplicateWarning(match);
@@ -151,24 +151,23 @@ const DocumentCreator: React.FC<CreatorProps> = ({
   };
 
   const formatICNumberBasic = (value: string) => {
+    // If it's a standard IC (12 digits), apply standard formatting
     const digits = value.replace(/\D/g, '');
-    let formatted = digits;
-    if (digits.length > 6) {
-      formatted = digits.slice(0, 6) + '-' + digits.slice(6);
+    if (digits.length === 12 && value.replace(/[^a-zA-Z0-9]/g, '').length === 12) {
+      let formatted = digits.slice(0, 6) + '-' + digits.slice(6, 8) + '-' + digits.slice(8, 12);
+      return formatted;
     }
-    if (formatted.length > 9) {
-      formatted = formatted.slice(0, 9) + '-' + formatted.slice(9);
-    }
-    return formatted.slice(0, 14);
+    // Otherwise, treat as police/army number (allow alphanumeric, uppercase)
+    return value.toUpperCase().slice(0, 20);
   };
 
-  const filteredCustomers = searchQuery.length > 1 
-    ? customers.filter(c => 
-        c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        c.phone.includes(searchQuery) ||
-        (c.ic && c.ic.includes(searchQuery)) ||
-        c.vehicleRegNo.toLowerCase().includes(searchQuery.toLowerCase())
-      ) 
+  const filteredCustomers = searchQuery.length > 1
+    ? customers.filter(c =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.phone.includes(searchQuery) ||
+      (c.ic && c.ic.includes(searchQuery)) ||
+      c.vehicleRegNo.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : [];
 
   const selectCustomer = (c: Customer) => {
@@ -206,13 +205,13 @@ const DocumentCreator: React.FC<CreatorProps> = ({
   const finalizeDocument = async () => {
     if (isFinalizing) return;
     setIsFinalizing(true);
-    
+
     try {
       let targetCustomerId = formData.customerId;
-      
+
       if (!targetCustomerId) {
-        const existing = customers.find(c => 
-          (c.ic === formData.ic && formData.ic !== '') || 
+        const existing = customers.find(c =>
+          (c.ic === formData.ic && formData.ic !== '') ||
           (c.name.toLowerCase() === formData.customerName.toLowerCase() && c.phone === formData.phone)
         );
 
@@ -312,7 +311,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-12">
-      <PdfPreviewModal 
+      <PdfPreviewModal
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
         onConfirm={finalizeDocument}
@@ -328,20 +327,20 @@ const DocumentCreator: React.FC<CreatorProps> = ({
 
       <div className="glass-card p-2 rounded-xl border border-slate-200 flex items-center justify-between shadow-sm">
         <div className="flex bg-slate-100/50 p-1 rounded-lg">
-          <button 
+          <button
             onClick={() => setDocType('Invoice')}
             className={`px-6 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${docType === 'Invoice' ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-400'}`}
           >
             Invoice
           </button>
-          <button 
+          <button
             onClick={() => setDocType('Receipt')}
             className={`px-6 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${docType === 'Receipt' ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-400'}`}
           >
             Receipt
           </button>
         </div>
-        
+
         <div className="flex items-center gap-2 px-4">
           {[1, 2, 3].map(num => (
             <div key={num} className="flex items-center">
@@ -369,18 +368,18 @@ const DocumentCreator: React.FC<CreatorProps> = ({
 
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Lookup in client database..." 
+              <input
+                type="text"
+                placeholder="Lookup in client database..."
                 className="w-full pl-9 pr-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none backdrop-blur-md"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              
+
               {filteredCustomers.length > 0 && (
                 <div className="absolute top-full left-0 w-full mt-2 bg-white/90 backdrop-blur-xl border border-slate-200 shadow-xl rounded-xl overflow-hidden z-20">
                   {filteredCustomers.map(c => (
-                    <button 
+                    <button
                       key={c.id}
                       onClick={() => selectCustomer(c)}
                       className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 text-left transition-colors border-b border-slate-100 last:border-none"
@@ -388,8 +387,8 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                       <div>
                         <p className="text-xs font-bold text-slate-900">{c.name}</p>
                         <div className="flex items-center gap-3">
-                           <p className="text-[10px] text-blue-500 font-bold uppercase tracking-wider">{c.phone}</p>
-                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{c.ic}</p>
+                          <p className="text-[10px] text-blue-500 font-bold uppercase tracking-wider">{c.phone}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{c.ic}</p>
                         </div>
                       </div>
                       <ChevronRight size={14} className="text-slate-300" />
@@ -407,7 +406,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                   <p className="text-[10px] text-amber-700 leading-relaxed mb-3">
                     A profile with IC <span className="font-bold">{duplicateWarning.ic}</span> already exists. Link to this record to avoid duplicates?
                   </p>
-                  <button 
+                  <button
                     onClick={useExistingCustomer}
                     className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-amber-600 transition-colors"
                   >
@@ -423,7 +422,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setFormData({...formData, isCompany: false})}
+                    onClick={() => setFormData({ ...formData, isCompany: false })}
                     className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-xs font-bold transition-all ${!formData.isCompany ? 'border-blue-600 bg-blue-500/10 text-blue-600' : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
                   >
                     <UserPlus size={16} />
@@ -431,7 +430,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setFormData({...formData, isCompany: true})}
+                    onClick={() => setFormData({ ...formData, isCompany: true })}
                     className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-xs font-bold transition-all ${formData.isCompany ? 'border-blue-600 bg-blue-500/10 text-blue-600' : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
                   >
                     <Building2 size={16} />
@@ -441,20 +440,20 @@ const DocumentCreator: React.FC<CreatorProps> = ({
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Entity Name <span className="text-red-500">*</span></label>
-                <input 
+                <input
                   type="text" placeholder={formData.isCompany ? 'Company name' : 'John Doe'} className={inputClass}
                   value={formData.customerName}
-                  onChange={e => setFormData({...formData, customerName: e.target.value, customerId: ''})}
+                  onChange={e => setFormData({ ...formData, customerName: e.target.value, customerId: '' })}
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Contact Protocol (+60) <span className="text-red-500">*</span></label>
-                  <input 
+                  <input
                     type="text" placeholder="+6012-3456789" className={inputClass}
                     value={formData.phone}
-                    onChange={e => setFormData({...formData, phone: formatPhoneNumber(e.target.value), customerId: ''})}
+                    onChange={e => setFormData({ ...formData, phone: formatPhoneNumber(e.target.value), customerId: '' })}
                   />
                 </div>
                 {!formData.isCompany && (
@@ -462,10 +461,10 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Identity Card (IC) <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <Fingerprint className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-200" size={16} />
-                      <input 
-                        type="text" placeholder="000000-00-0000" className={inputClass}
+                      <input
+                        type="text" placeholder="Identity Number / Police / Army No" className={inputClass}
                         value={formData.ic}
-                        onChange={e => setFormData({...formData, ic: formatICNumberBasic(e.target.value), customerId: ''})}
+                        onChange={e => setFormData({ ...formData, ic: formatICNumberBasic(e.target.value), customerId: '' })}
                       />
                     </div>
                   </div>
@@ -474,7 +473,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-100">
-              <button 
+              <button
                 onClick={() => setStep(2)}
                 disabled={!isStep1Valid}
                 className="btn-premium flex items-center gap-2 px-6 py-2 rounded-lg text-xs uppercase disabled:opacity-30"
@@ -488,12 +487,12 @@ const DocumentCreator: React.FC<CreatorProps> = ({
         {step === 2 && (
           <div className="space-y-6 animate-in slide-in-from-right-2 duration-300">
             <div className="flex items-center gap-3">
-               <button onClick={() => setStep(1)} className="p-2 rounded-lg bg-slate-100/50 text-slate-500 hover:text-blue-600 transition-colors">
-                  <ArrowLeft size={16} />
-               </button>
-               <h3 className="font-title text-xl text-slate-900 tracking-wide">
-                 {italicizeFirstWord('Asset Classification')}
-               </h3>
+              <button onClick={() => setStep(1)} className="p-2 rounded-lg bg-slate-100/50 text-slate-500 hover:text-blue-600 transition-colors">
+                <ArrowLeft size={16} />
+              </button>
+              <h3 className="font-title text-xl text-slate-900 tracking-wide">
+                {italicizeFirstWord('Asset Classification')}
+              </h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -501,15 +500,15 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                 <div className="space-y-3">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Asset Class <span className="text-red-500">*</span></label>
                   <div className="grid grid-cols-2 gap-3">
-                    <button 
+                    <button
                       type="button"
-                      onClick={() => { setFormData({...formData, vehicleType: 'Motor', othersEntries: []}); setAttachmentFile(null); }}
+                      onClick={() => { setFormData({ ...formData, vehicleType: 'Motor', othersEntries: [] }); setAttachmentFile(null); }}
                       className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2 ${formData.vehicleType === 'Motor' ? 'border-blue-600 bg-blue-500/10 text-blue-600' : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
                     >
                       <Car size={24} />
                       <span className="text-[9px] font-bold uppercase">Motor</span>
                     </button>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setFormData({
                         ...formData,
@@ -528,10 +527,10 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Issued Company <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                    <select 
+                    <select
                       className={`${inputClass} pl-9 appearance-none`}
                       value={formData.issuedCompany}
-                      onChange={e => setFormData({...formData, issuedCompany: e.target.value})}
+                      onChange={e => setFormData({ ...formData, issuedCompany: e.target.value })}
                     >
                       <option value="">Select Provider...</option>
                       {INSURANCE_COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -547,10 +546,10 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Policy Type <span className="text-red-500">*</span></label>
                       <div className="relative">
                         <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                        <select 
+                        <select
                           className={`${inputClass} pl-9 appearance-none`}
                           value={formData.insuranceType}
-                          onChange={e => setFormData({...formData, insuranceType: e.target.value as InsuranceType})}
+                          onChange={e => setFormData({ ...formData, insuranceType: e.target.value as InsuranceType })}
                         >
                           {INSURANCE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
@@ -560,10 +559,10 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Plate Reference <span className="text-red-500">*</span></label>
                       <div className="relative">
                         <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                        <input 
+                        <input
                           type="text" placeholder="XYZ-1234" className={`${inputClass} pl-9 uppercase tracking-widest`}
                           value={formData.vehicleRegNo}
-                          onChange={e => setFormData({...formData, vehicleRegNo: e.target.value.toUpperCase()})}
+                          onChange={e => setFormData({ ...formData, vehicleRegNo: e.target.value.toUpperCase() })}
                         />
                       </div>
                     </div>
@@ -575,10 +574,10 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Project Name <span className="text-red-500">*</span></label>
                       <div className="relative">
                         <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                        <input 
+                        <input
                           type="text" placeholder="Project name" className={`${inputClass} pl-9 uppercase`}
                           value={formData.vehicleRegNo}
-                          onChange={e => setFormData({...formData, vehicleRegNo: e.target.value.toUpperCase()})}
+                          onChange={e => setFormData({ ...formData, vehicleRegNo: e.target.value.toUpperCase() })}
                         />
                       </div>
                     </div>
@@ -587,7 +586,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Categories & amount (RM) <span className="text-red-500">*</span></label>
                         <button
                           type="button"
-                          onClick={() => setFormData({...formData, othersEntries: [...formData.othersEntries, { category: 'Public Liability', amount: '' }]})}
+                          onClick={() => setFormData({ ...formData, othersEntries: [...formData.othersEntries, { category: 'Public Liability', amount: '' }] })}
                           className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-blue-600 hover:bg-blue-50 border border-blue-200"
                         >
                           <Plus size={12} /> Add category
@@ -601,7 +600,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                             onChange={e => {
                               const next = [...formData.othersEntries];
                               next[idx] = { ...next[idx], category: e.target.value as OthersCategory };
-                              setFormData({...formData, othersEntries: next});
+                              setFormData({ ...formData, othersEntries: next });
                             }}
                           >
                             {OTHERS_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -617,13 +616,13 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                               onChange={e => {
                                 const next = [...formData.othersEntries];
                                 next[idx] = { ...next[idx], amount: e.target.value };
-                                setFormData({...formData, othersEntries: next});
+                                setFormData({ ...formData, othersEntries: next });
                               }}
                             />
                           </div>
                           <button
                             type="button"
-                            onClick={() => setFormData({...formData, othersEntries: formData.othersEntries.filter((_, i) => i !== idx)})}
+                            onClick={() => setFormData({ ...formData, othersEntries: formData.othersEntries.filter((_, i) => i !== idx) })}
                             className="p-2 text-slate-400 hover:text-red-500 rounded-lg"
                             title="Remove"
                           >
@@ -638,13 +637,12 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                       </label>
                       <div className="flex items-center gap-3 flex-wrap">
                         <div
-                          className={`flex items-center gap-2 px-6 py-4 rounded-xl border-2 border-dashed text-xs font-medium transition-colors cursor-pointer min-w-[200px] ${
-                            isDraggingPdf
-                              ? 'border-blue-500 bg-blue-50 text-blue-700'
-                              : attachmentFile
-                                ? 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
-                                : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
-                          }`}
+                          className={`flex items-center gap-2 px-6 py-4 rounded-xl border-2 border-dashed text-xs font-medium transition-colors cursor-pointer min-w-[200px] ${isDraggingPdf
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : attachmentFile
+                              ? 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                              : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
+                            }`}
                           onDragOver={e => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -712,7 +710,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
 
             <div className="flex justify-between items-center pt-4 border-t border-slate-100">
               <button onClick={() => setStep(1)} className="text-slate-400 hover:text-blue-600 font-bold text-[10px] uppercase">Retreat</button>
-              <button 
+              <button
                 onClick={() => setStep(3)}
                 disabled={!isStep2Valid}
                 className="btn-premium px-6 py-2 rounded-lg text-xs uppercase flex items-center gap-2 disabled:opacity-30"
@@ -744,11 +742,11 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Amount (RM) <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-600 font-title text-2xl opacity-40">RM</span>
-                    <input 
+                    <input
                       type="number" step="0.01" required placeholder="0.00"
                       className="w-full pl-16 pr-4 py-6 bg-blue-500/5 border-2 border-blue-100 rounded-xl text-4xl md:text-5xl font-title text-blue-700 focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all shadow-inner leading-none"
                       value={formData.amount}
-                      onChange={e => setFormData({...formData, amount: e.target.value})}
+                      onChange={e => setFormData({ ...formData, amount: e.target.value })}
                     />
                   </div>
                 </div>
@@ -778,7 +776,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                     placeholder="0.00"
                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition-all"
                     value={formData.serviceChargeAmount}
-                    onChange={e => setFormData({...formData, serviceChargeAmount: e.target.value})}
+                    onChange={e => setFormData({ ...formData, serviceChargeAmount: e.target.value })}
                   />
                 </div>
                 <p className="text-sm font-bold text-blue-600 pt-1 border-t border-slate-200/80 mt-2">Total: RM {totalAmount.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
@@ -788,7 +786,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
 
             <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
               <button type="button" onClick={() => setStep(2)} className="text-slate-400 hover:text-slate-600 font-bold text-[10px] uppercase">Re-Asset</button>
-              <button 
+              <button
                 onClick={() => setIsPreviewOpen(true)}
                 disabled={isFinalizing || !isStep3Valid}
                 className="btn-premium flex items-center gap-2 px-10 py-3 rounded-xl font-bold shadow-md text-xs uppercase disabled:opacity-50"
