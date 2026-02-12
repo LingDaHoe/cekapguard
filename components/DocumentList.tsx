@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { 
-  Search, 
-  Download, 
-  Eye, 
-  FileText, 
-  Receipt, 
+import {
+  Search,
+  Download,
+  Eye,
+  FileText,
+  Receipt,
   ExternalLink,
   Fingerprint,
   Banknote,
@@ -41,7 +41,7 @@ const DocumentList: React.FC<ListProps> = ({ documents, customers, config, curre
       doc.customerName.toLowerCase().includes(search.toLowerCase()) ||
       doc.docNumber.toLowerCase().includes(search.toLowerCase()) ||
       (doc.customerIc && doc.customerIc.includes(search));
-    const matchesStaff = currentUser.role === 'Owner' || doc.staffId === currentUser.id;
+    const matchesStaff = true; // Staff can now see all documents in the registry
     return matchesSearch && matchesStaff;
   };
 
@@ -129,108 +129,108 @@ const DocumentList: React.FC<ListProps> = ({ documents, customers, config, curre
 
       {/* Invoices section – only show when there is invoice data */}
       {hasAnyInvoices && (
-      <div className="glass-card border border-blue-200 rounded-xl overflow-hidden shadow-sm bg-white/60">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-blue-50/50">
-          <h3 className="font-title text-lg text-slate-900 flex items-center gap-2">
-            <FileText size={20} className="text-blue-600" />
-            <span className="text-blue-600 italic font-medium">Invoices</span>
-          </h3>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setInvoicesMinimized(v => !v)}
-              className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50/50 rounded-lg transition-colors"
-              title={invoicesMinimized ? 'Expand section' : 'Minimize section'}
-              aria-label={invoicesMinimized ? 'Expand' : 'Minimize'}
-            >
-              {invoicesMinimized ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-            </button>
-            <button
-              onClick={() => exportCSV('Invoice', filteredInvoices)}
-              disabled={filteredInvoices.length === 0}
-              className="btn-premium flex items-center gap-2 px-4 py-2 rounded-lg text-xs disabled:opacity-50"
-            >
-              <Download size={14} /> Export Invoices
-            </button>
+        <div className="glass-card border border-blue-200 rounded-xl overflow-hidden shadow-sm bg-white/60">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-blue-50/50">
+            <h3 className="font-title text-lg text-slate-900 flex items-center gap-2">
+              <FileText size={20} className="text-blue-600" />
+              <span className="text-blue-600 italic font-medium">Invoices</span>
+            </h3>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setInvoicesMinimized(v => !v)}
+                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50/50 rounded-lg transition-colors"
+                title={invoicesMinimized ? 'Expand section' : 'Minimize section'}
+                aria-label={invoicesMinimized ? 'Expand' : 'Minimize'}
+              >
+                {invoicesMinimized ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+              </button>
+              <button
+                onClick={() => exportCSV('Invoice', filteredInvoices)}
+                disabled={filteredInvoices.length === 0}
+                className="btn-premium flex items-center gap-2 px-4 py-2 rounded-lg text-xs disabled:opacity-50"
+              >
+                <Download size={14} /> Export Invoices
+              </button>
+            </div>
           </div>
-        </div>
-        {!invoicesMinimized && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left table-auto">
-            <thead>
-              <tr className="bg-slate-50/30 border-b border-slate-200">
-                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Manifest</th>
-                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Issuance Entity / Identification</th>
-                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Protocol Date</th>
-                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Value (RM)</th>
-                <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredInvoices.map((doc) => (
-                <tr key={doc.id} className={`transition-colors group ${doc.paidAt ? 'bg-emerald-50/50' : 'hover:bg-white/40'}`}>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded flex items-center justify-center shrink-0 bg-blue-50 text-blue-600">
-                        <FileText size={14} />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-slate-900 block leading-none mb-1">{doc.docNumber}</span>
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-blue-500">Invoice</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <p className="text-xs font-bold text-slate-800 leading-none mb-1">{doc.customerName}</p>
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5">
-                      <Fingerprint size={10} className="text-blue-500" /> {doc.customerIc || 'PENDING_REGISTRY'}
-                    </p>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <p className="text-xs font-semibold text-slate-500">{new Date(doc.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                    <p className="text-[9px] text-slate-300 font-bold uppercase mt-1">ISSUER: {doc.staffName}</p>
-                  </td>
-                  <td className="px-5 py-3.5 text-right">
-                    <p className="text-sm font-bold text-blue-600">RM {doc.amount.toLocaleString()}</p>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex justify-center items-center gap-2 flex-wrap">
-                      <button onClick={() => handlePreview(doc)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50/50 rounded transition-colors" title="View Document">
-                        <Eye size={14} />
-                      </button>
-                      <button className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50/50 rounded transition-colors">
-                        <ExternalLink size={14} />
-                      </button>
-                      {doc.paidAt ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider">
-                          <CheckCircle size={12} /> Paid{doc.receiptDocNumber ? ` (${doc.receiptDocNumber})` : ''}
-                        </span>
-                      ) : onMarkInvoicePaid ? (
-                        <button
-                          onClick={() => handleMarkPaid(doc)}
-                          disabled={payingId === doc.id}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors"
-                          title="Customer paid – create receipt and mark as paid"
-                        >
-                          {payingId === doc.id ? <Loader2 size={12} className="animate-spin" /> : <Banknote size={12} />}
-                          Pay
-                        </button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredInvoices.length === 0 && (
-            <div className="py-12 text-center">
-              <p className="text-slate-300 font-title text-lg uppercase opacity-50">No invoices</p>
-              <p className="text-slate-400 text-xs mt-1">No invoice records match the search.</p>
+          {!invoicesMinimized && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left table-auto">
+                <thead>
+                  <tr className="bg-slate-50/30 border-b border-slate-200">
+                    <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Manifest</th>
+                    <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Issuance Entity / Identification</th>
+                    <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Protocol Date</th>
+                    <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Value (RM)</th>
+                    <th className="px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredInvoices.map((doc) => (
+                    <tr key={doc.id} className={`transition-colors group ${doc.paidAt ? 'bg-emerald-50/50' : 'hover:bg-white/40'}`}>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded flex items-center justify-center shrink-0 bg-blue-50 text-blue-600">
+                            <FileText size={14} />
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-slate-900 block leading-none mb-1">{doc.docNumber}</span>
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-blue-500">Invoice</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <p className="text-xs font-bold text-slate-800 leading-none mb-1">{doc.customerName}</p>
+                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5">
+                          <Fingerprint size={10} className="text-blue-500" /> {doc.customerIc || 'PENDING_REGISTRY'}
+                        </p>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <p className="text-xs font-semibold text-slate-500">{new Date(doc.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                        <p className="text-[9px] text-slate-300 font-bold uppercase mt-1">ISSUER: {doc.staffName}</p>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <p className="text-sm font-bold text-blue-600">RM {doc.amount.toLocaleString()}</p>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex justify-center items-center gap-2 flex-wrap">
+                          <button onClick={() => handlePreview(doc)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50/50 rounded transition-colors" title="View Document">
+                            <Eye size={14} />
+                          </button>
+                          <button className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50/50 rounded transition-colors">
+                            <ExternalLink size={14} />
+                          </button>
+                          {doc.paidAt ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider">
+                              <CheckCircle size={12} /> Paid{doc.receiptDocNumber ? ` (${doc.receiptDocNumber})` : ''}
+                            </span>
+                          ) : onMarkInvoicePaid ? (
+                            <button
+                              onClick={() => handleMarkPaid(doc)}
+                              disabled={payingId === doc.id}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors"
+                              title="Customer paid – create receipt and mark as paid"
+                            >
+                              {payingId === doc.id ? <Loader2 size={12} className="animate-spin" /> : <Banknote size={12} />}
+                              Pay
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filteredInvoices.length === 0 && (
+                <div className="py-12 text-center">
+                  <p className="text-slate-300 font-title text-lg uppercase opacity-50">No invoices</p>
+                  <p className="text-slate-400 text-xs mt-1">No invoice records match the search.</p>
+                </div>
+              )}
             </div>
           )}
         </div>
-        )}
-      </div>
       )}
 
       {/* Receipts section – audit: receipts only */}

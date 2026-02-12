@@ -217,16 +217,20 @@ const DocumentCreator: React.FC<CreatorProps> = ({
 
         if (existing) {
           targetCustomerId = existing.id;
-          updateCustomer({
-            ...existing,
-            name: formData.customerName,
-            phone: formData.phone,
-            ic: formData.ic,
-            isCompany: formData.isCompany,
-            vehicleRegNo: formData.vehicleRegNo,
-            insuranceType: formData.insuranceType,
-            othersCategory: formData.othersEntries?.[0]?.category ?? formData.othersCategory
-          });
+          try {
+            updateCustomer({
+              ...existing,
+              name: formData.customerName,
+              phone: formData.phone,
+              ic: formData.ic,
+              isCompany: formData.isCompany,
+              vehicleRegNo: formData.vehicleRegNo,
+              insuranceType: formData.insuranceType,
+              othersCategory: formData.othersEntries?.[0]?.category ?? formData.othersCategory
+            });
+          } catch (e) {
+            console.warn("Soft Update Warning: Could not update customer metadata.", e);
+          }
         } else {
           const newCust = await addCustomer({
             name: formData.customerName,
@@ -244,15 +248,19 @@ const DocumentCreator: React.FC<CreatorProps> = ({
       } else {
         const existing = customers.find(c => c.id === targetCustomerId);
         if (existing) {
-          updateCustomer({
-            ...existing,
-            phone: formData.phone,
-            ic: formData.ic,
-            isCompany: formData.isCompany,
-            vehicleRegNo: formData.vehicleRegNo,
-            insuranceType: formData.insuranceType,
-            othersCategory: formData.othersEntries?.[0]?.category ?? formData.othersCategory
-          });
+          try {
+            updateCustomer({
+              ...existing,
+              phone: formData.phone,
+              ic: formData.ic,
+              isCompany: formData.isCompany,
+              vehicleRegNo: formData.vehicleRegNo,
+              insuranceType: formData.insuranceType,
+              othersCategory: formData.othersEntries?.[0]?.category ?? formData.othersCategory
+            });
+          } catch (e) {
+            console.warn("Soft Update Warning: Could not update customer metadata.", e);
+          }
         }
       }
 
