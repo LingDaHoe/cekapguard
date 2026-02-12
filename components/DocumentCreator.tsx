@@ -265,7 +265,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
         ? formData.othersEntries.map(e => ({ category: e.category, amount: parseFloat(e.amount) || 0 }))
         : undefined;
       const serviceChargePayload = serviceChargeNum > 0 ? serviceChargeNum : undefined;
-      addDocument({
+      await addDocument({
         type: docType,
         customerId: targetCustomerId,
         customerName: formData.customerName,

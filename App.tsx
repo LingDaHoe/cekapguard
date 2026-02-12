@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Users, 
-  Settings, 
-  History, 
-  PlusCircle, 
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  Settings,
+  History,
+  PlusCircle,
   Menu,
-  X, 
+  X,
   ShieldCheck,
   Bell,
   LogOut,
@@ -16,11 +16,11 @@ import {
   ExternalLink,
   ShieldAlert
 } from 'lucide-react';
-import { 
-  Customer, 
-  Document, 
-  ActivityLog, 
-  SystemConfig, 
+import {
+  Customer,
+  Document,
+  ActivityLog,
+  SystemConfig,
   User
 } from './types';
 import { INITIAL_CONFIG } from './constants';
@@ -35,13 +35,13 @@ import AuthPage from './components/AuthPage';
 import { BackgroundGradientAnimation } from './components/ui/background-gradient-animation';
 import { auth, db, uploadDocumentAttachment } from './services/firebase';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { 
-  collection, 
-  setDoc, 
-  doc, 
-  addDoc, 
-  query, 
-  orderBy, 
+import {
+  collection,
+  setDoc,
+  doc,
+  addDoc,
+  query,
+  orderBy,
   onSnapshot,
   getDocs,
   where,
@@ -67,7 +67,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  
+
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -78,13 +78,13 @@ const App: React.FC = () => {
       if (user) {
         const email = user.email?.toLowerCase() || '';
         const isOwner = email.includes('owner');
-        
+
         // Security Check: If not owner, must exist in staff collection
         if (!isOwner) {
           const staffRef = collection(db, "staff");
           const q = query(staffRef, where("email", "==", email));
           const querySnapshot = await getDocs(q);
-          
+
           if (querySnapshot.empty) {
             console.error("Access Revoked: Not found in staff registry.");
             await signOut(auth);
@@ -307,12 +307,22 @@ const App: React.FC = () => {
       where('type', '==', 'Receipt')
     );
     const snap = await getDocs(q);
-    const receipts = snap.docs.map(d => ({ id: d.id, ...d.data() } as { id: string; date: string; [k: string]: unknown }));
-    receipts.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    const receipts = snap.docs.map(d => ({ id: d.id, ...d.data() } as { id: string; date: string;[k: string]: any }));
+    // Sort by date then by id as a tie-breaker for deterministic renumbering
+    receipts.sort((a, b) => {
+      const dateCompare = (a.date || '').localeCompare(b.date || '');
+      if (dateCompare !== 0) return dateCompare;
+      return a.id.localeCompare(b.id);
+    });
+
     for (let i = 0; i < receipts.length; i++) {
-      await setDoc(doc(db, 'documents', receipts[i].id), { docNumber: `${prefix}${String(i + 1).padStart(5, '0')}` }, { merge: true });
+      const docNumber = `${prefix}${String(i + 1).padStart(5, '0')}`;
+      if (receipts[i].docNumber !== docNumber) {
+        await setDoc(doc(db, 'documents', receipts[i].id), { docNumber }, { merge: true });
+      }
     }
     await setDoc(doc(db, 'settings', 'docCounters'), { receipt: receipts.length }, { merge: true });
+    alert(`Successfully synchronized ${receipts.length} receipts.`);
   };
 
   const menuGroups = [
@@ -370,9 +380,9 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <BackgroundGradientAnimation 
+      <BackgroundGradientAnimation
         containerClassName="opacity-100"
-        gradientBackgroundStart="rgb(248, 250, 252)" 
+        gradientBackgroundStart="rgb(248, 250, 252)"
         gradientBackgroundEnd="rgb(226, 232, 240)"
         firstColor="186, 230, 253"
         secondColor="191, 219, 254"
@@ -382,7 +392,7 @@ const App: React.FC = () => {
         pointerColor="37, 99, 235"
       />
 
-      <aside 
+      <aside
         className={`bg-white/80 backdrop-blur-xl border-r border-slate-200 transition-all duration-300 flex flex-col z-50 ${isSidebarOpen ? 'w-60' : 'w-20'}`}
       >
         <div className="h-16 flex items-center px-6 border-b border-slate-100 shrink-0">
@@ -411,11 +421,10 @@ const App: React.FC = () => {
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${
-                      activeTab === item.id 
-                        ? 'sidebar-active text-white shadow-md shadow-blue-500/10' 
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${activeTab === item.id
+                        ? 'sidebar-active text-white shadow-md shadow-blue-500/10'
                         : 'text-slate-500 hover:bg-slate-50 hover:text-blue-600'
-                    }`}
+                      }`}
                   >
                     <item.icon size={18} className="shrink-0" />
                     {isSidebarOpen && (
@@ -442,9 +451,9 @@ const App: React.FC = () => {
               </div>
             )}
           </div>
-          
+
           <div className="flex gap-2">
-            <button 
+            <button
               onClick={handleSignOut}
               className={`h-8 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all rounded-md ${isSidebarOpen ? 'flex-1' : 'w-full'}`}
               title="Terminate Session"
@@ -453,7 +462,7 @@ const App: React.FC = () => {
               {isSidebarOpen && <span className="text-[10px] font-bold uppercase ml-2">Sign Out</span>}
             </button>
             {isSidebarOpen && (
-              <button 
+              <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                 className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-slate-50 transition-all rounded-md"
               >
@@ -462,7 +471,7 @@ const App: React.FC = () => {
             )}
           </div>
           {!isSidebarOpen && (
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="w-full h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-slate-50 transition-all rounded-md"
             >
@@ -479,9 +488,9 @@ const App: React.FC = () => {
               <AlertTriangle size={18} className="shrink-0" />
               <p className="text-[10px] font-bold uppercase tracking-widest">{connectionError}</p>
             </div>
-            <a 
-              href="https://console.firebase.google.com/" 
-              target="_blank" 
+            <a
+              href="https://console.firebase.google.com/"
+              target="_blank"
               rel="noopener noreferrer"
               className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded text-[9px] font-bold uppercase flex items-center gap-2 transition-colors"
             >
@@ -499,7 +508,7 @@ const App: React.FC = () => {
 
           <div className="flex items-center gap-4">
             <button className="p-2 text-slate-500 hover:text-blue-600 transition-colors">
-               <Bell size={18} />
+              <Bell size={18} />
             </button>
             <div className="h-6 w-[1px] bg-slate-200"></div>
             <div className="flex items-center gap-3">
@@ -514,14 +523,14 @@ const App: React.FC = () => {
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
           <div className="max-w-6xl mx-auto w-full">
             {activeTab === 'dashboard' && (
-              <Dashboard 
-                documents={documents} 
-                customers={customers} 
-                onActionClick={(tab) => setActiveTab(tab)} 
+              <Dashboard
+                documents={documents}
+                customers={customers}
+                onActionClick={(tab) => setActiveTab(tab)}
               />
             )}
             {activeTab === 'create' && (
-              <DocumentCreator 
+              <DocumentCreator
                 customers={customers}
                 addCustomer={addCustomer}
                 updateCustomer={updateCustomer}
@@ -530,18 +539,18 @@ const App: React.FC = () => {
               />
             )}
             {activeTab === 'documents' && (
-              <DocumentList 
-                documents={documents} 
+              <DocumentList
+                documents={documents}
                 customers={customers}
-                config={config} 
+                config={config}
                 currentUser={currentUser}
                 onMarkInvoicePaid={markInvoicePaid}
               />
             )}
             {activeTab === 'customers' && (
-              <CustomerManagement 
-                customers={customers} 
-                updateCustomer={updateCustomer} 
+              <CustomerManagement
+                customers={customers}
+                updateCustomer={updateCustomer}
               />
             )}
             {activeTab === 'staff' && currentUser.role === 'Owner' && (
@@ -551,7 +560,7 @@ const App: React.FC = () => {
               <ActivityLogs logs={logs} />
             )}
             {activeTab === 'settings' && currentUser.role === 'Owner' && (
-              <AdminSettings config={config} setConfig={handleUpdateConfig} />
+              <AdminSettings config={config} setConfig={handleUpdateConfig} onRepairReceipts={renumberReceipts} />
             )}
           </div>
         </main>
