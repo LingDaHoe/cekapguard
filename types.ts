@@ -10,6 +10,13 @@ export interface OthersEntry {
   amount: number;
 }
 
+export interface MotorEntry {
+  plateNo: string;
+  insuranceType: InsuranceType;
+  provider: string;
+  amount: number;
+}
+
 export interface Customer {
   id: string;
   name: string;
@@ -22,6 +29,7 @@ export interface Customer {
   othersCategory?: OthersCategory;
   isCompany?: boolean;
   lastUpdated: string;
+  motorEntries?: MotorEntry[];
 }
 
 export interface Document {
@@ -41,6 +49,8 @@ export interface Document {
   othersCategory?: OthersCategory;
   /** For Others: multiple categories with individual amounts */
   othersEntries?: OthersEntry[];
+  /** For Motor: multiple vehicles with individual amounts */
+  motorEntries?: MotorEntry[];
   /** Optional service charge amount */
   serviceCharge?: number;
   attachmentUrl?: string;

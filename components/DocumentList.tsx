@@ -99,6 +99,7 @@ const DocumentList: React.FC<ListProps> = ({ documents, customers, config, curre
               vehicleRegNo: customer?.vehicleRegNo ?? '',
               insuranceType: customer?.insuranceType ?? 'Comprehensive',
               othersCategory: previewDoc.othersCategory ?? customer?.othersCategory,
+              motorEntries: previewDoc.motorEntries,
               othersEntries: previewDoc.othersEntries,
               issuedCompany: previewDoc.issuedCompany,
               amount: previewDoc.amount,

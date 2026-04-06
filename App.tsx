@@ -245,6 +245,7 @@ const App: React.FC = () => {
       amount: invoice.amount,
       insuranceDetails: invoice.insuranceDetails,
       remarks: invoice.remarks,
+      ...(invoice.motorEntries && { motorEntries: invoice.motorEntries }),
       ...(invoice.othersEntries && { othersEntries: invoice.othersEntries }),
       ...(invoice.serviceCharge != null && { serviceCharge: invoice.serviceCharge })
     };
@@ -268,7 +269,7 @@ const App: React.FC = () => {
     const withTimestamp = { ...customerData, lastUpdated: new Date().toISOString() };
     const newCustomer = Object.fromEntries(
       Object.entries(withTimestamp).filter(([, v]) => v !== undefined)
-    ) as Customer & { lastUpdated: string };
+    ) as any;
     try {
       const docRef = await addDoc(collection(db, "customers"), newCustomer);
       return { ...withTimestamp, id: docRef.id } as Customer;

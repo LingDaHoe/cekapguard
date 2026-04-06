@@ -19,6 +19,7 @@ interface PdfPreviewModalProps {
     vehicleType: VehicleType;
     vehicleRegNo: string;
     insuranceType: InsuranceType;
+    motorEntries?: { plateNo: string; insuranceType: InsuranceType; provider: string; amount: number }[];
     othersCategory?: OthersCategory;
     othersEntries?: OthersEntry[];
     issuedCompany: string;
@@ -116,10 +117,13 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
   const safeAmount = isNaN(amountValue) ? 0 : amountValue;
   const formattedAmount = safeAmount.toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const hasOthersEntries = data.othersEntries && data.othersEntries.length > 0;
+  const hasMotorEntries = data.motorEntries && data.motorEntries.length > 0;
   const categoriesLabel = hasOthersEntries ? data.othersEntries!.map(e => e.category).join(', ') : (data.othersCategory ?? '');
+  const platesLabel = hasMotorEntries ? data.motorEntries!.map(e => e.plateNo).join(', ') : (data.vehicleRegNo ?? '');
+  const providersLabel = hasMotorEntries ? Array.from(new Set(data.motorEntries!.map(e => e.provider))).join(', ') : data.issuedCompany;
 
   // Shrink project name / registration mark font when long so it doesn't look bulky
-  const regNoLen = (data.vehicleRegNo || '').length;
+  const regNoLen = platesLabel.length;
   const projectNameFontClass = regNoLen <= 12 ? 'text-base' : regNoLen <= 20 ? 'text-sm' : regNoLen <= 30 ? 'text-xs' : 'text-[10px]';
 
   const handleDownloadContractPdf = async () => {
@@ -249,10 +253,10 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                     </p>
                   )}
                   <p className="text-slate-500 font-medium leading-none">{data.phone}</p>
-                  {data.vehicleRegNo && data.vehicleType === 'Motor' && (
+                  {platesLabel && data.vehicleType === 'Motor' && (
                     <p className="text-slate-500 font-medium leading-none">
                       <span className="text-[9px] uppercase text-slate-400">Plate:</span>{' '}
-                      <span className={`italic tracking-wide ${projectNameFontClass}`}>{data.vehicleRegNo}</span>
+                      <span className={`italic tracking-wide ${projectNameFontClass}`}>{platesLabel}</span>
                     </p>
                   )}
                   {data.vehicleType === 'Others' && (categoriesLabel || hasOthersEntries) && (
@@ -276,7 +280,8 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                     <p className="text-[8px] text-blue-600 uppercase tracking-widest mb-1">Coverage Classification</p>
                     <p className={`break-words ${projectNameFontClass}`}>
                       {data.vehicleType === 'Motor' ? 'Motor Insurance Policy' : 'Project Insurance Policy'}
-                      {data.vehicleType === 'Motor' && data.insuranceType && ` • ${data.insuranceType}`}
+                      {data.vehicleType === 'Motor' && !hasMotorEntries && data.insuranceType && ` • ${data.insuranceType}`}
+                      {data.vehicleType === 'Motor' && hasMotorEntries && ` • Multiple Vehicles`}
                       {data.vehicleType === 'Others' && (hasOthersEntries ? ` • ${data.othersEntries!.map(e => e.category).join(', ')}` : data.othersCategory && ` • ${data.othersCategory}`)}
                     </p>
                   </div>
@@ -285,11 +290,11 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                   <p className="text-[8px] text-blue-600 uppercase tracking-widest mb-1">
                     {data.vehicleType === 'Others' ? 'Project Name' : 'Registration Mark'}
                   </p>
-                  <p className={`italic text-slate-900 break-words ${projectNameFontClass}`}>{data.vehicleRegNo}</p>
+                  <p className={`italic text-slate-900 break-words ${projectNameFontClass}`}>{platesLabel}</p>
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-blue-200 flex items-center gap-2">
-                 <p className="text-[10px] uppercase tracking-wider text-slate-600">Issued by: <span className="text-slate-900 ml-1">{data.issuedCompany}</span></p>
+                  <p className="text-[10px] uppercase tracking-wider text-slate-600">Issued by: <span className="text-slate-900 ml-1">{providersLabel}</span></p>
               </div>
             </div>
 
@@ -315,7 +320,14 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                         <td className="px-4 py-2.5 text-right font-bold">{entry.amount.toLocaleString('en-MY', { minimumFractionDigits: 2 })}</td>
                       </tr>
                     ))}
-                    {!hasOthersEntries && data.vehicleType === 'Motor' && (
+                    {hasMotorEntries && data.motorEntries!.map((entry, idx) => (
+                      <tr key={idx} className="border-b border-slate-100 last:border-0">
+                        <td className="px-4 py-2.5 font-medium">{entry.plateNo} • {entry.insuranceType}</td>
+                        <td className="px-4 py-2.5">{entry.provider}</td>
+                        <td className="px-4 py-2.5 text-right font-bold">{entry.amount.toLocaleString('en-MY', { minimumFractionDigits: 2 })}</td>
+                      </tr>
+                    ))}
+                    {!hasMotorEntries && !hasOthersEntries && data.vehicleType === 'Motor' && (
                       <tr className="border-b border-slate-100">
                         <td className="px-4 py-2.5 font-medium">{data.insuranceType}</td>
                         <td className="px-4 py-2.5">{data.issuedCompany}</td>

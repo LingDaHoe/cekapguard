@@ -71,6 +71,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
     vehicleType: 'Motor' as VehicleType,
     vehicleRegNo: '',
     insuranceType: 'Comprehensive' as InsuranceType,
+    motorEntries: [] as { plateNo: string; insuranceType: InsuranceType; provider: string; amount: string }[],
     othersCategory: undefined as OthersCategory | undefined,
     othersEntries: [] as OthersEntryForm[],
     issuedCompany: '',
@@ -182,6 +183,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
       vehicleType: c.vehicleType,
       vehicleRegNo: c.vehicleRegNo,
       insuranceType: c.insuranceType,
+      motorEntries: c.motorEntries?.map(e => ({ ...e, amount: e.amount.toString() })) || (c.vehicleType === 'Motor' ? [{ plateNo: c.vehicleRegNo, insuranceType: c.insuranceType, provider: '', amount: '' }] : []),
       othersCategory: c.othersCategory,
       othersEntries: c.othersCategory ? [{ category: c.othersCategory, amount: '' }] : []
     });
@@ -266,9 +268,10 @@ const DocumentCreator: React.FC<CreatorProps> = ({
 
       if (!targetCustomerId) throw new Error("Entity link failed.");
 
-      const amount = formData.vehicleType === 'Motor'
-        ? (parseFloat(formData.amount) || 0) + serviceChargeNum
-        : formData.othersEntries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) + serviceChargeNum;
+      const amount = totalAmount;
+      const motorEntriesPayload = formData.vehicleType === 'Motor' && formData.motorEntries.length > 0
+        ? formData.motorEntries.map(e => ({ ...e, amount: parseFloat(e.amount) || 0 }))
+        : undefined;
       const othersEntriesPayload = formData.vehicleType === 'Others' && formData.othersEntries.length > 0
         ? formData.othersEntries.map(e => ({ category: e.category, amount: parseFloat(e.amount) || 0 }))
         : undefined;
@@ -278,11 +281,12 @@ const DocumentCreator: React.FC<CreatorProps> = ({
         customerId: targetCustomerId,
         customerName: formData.customerName,
         customerIc: formData.ic,
-        issuedCompany: formData.issuedCompany,
+        issuedCompany: formData.vehicleType === 'Motor' ? (formData.motorEntries[0]?.provider || '') : formData.issuedCompany,
         date: formData.date,
         amount,
         insuranceDetails: '',
         remarks: formData.remarks,
+        ...(motorEntriesPayload && { motorEntries: motorEntriesPayload }),
         ...(othersEntriesPayload && { othersEntries: othersEntriesPayload }),
         ...(serviceChargePayload !== undefined && serviceChargePayload > 0 && { serviceCharge: serviceChargePayload })
       }, attachmentFile || undefined);
@@ -306,15 +310,15 @@ const DocumentCreator: React.FC<CreatorProps> = ({
 
   // Step validation
   const isStep1Valid = formData.customerName && formData.phone && (formData.isCompany || formData.ic);
-  const isStep2Valid = formData.vehicleType && formData.issuedCompany && (
+  const isStep2Valid = formData.vehicleType && (
     formData.vehicleType === 'Others'
-      ? (formData.othersEntries.length > 0 && formData.othersEntries.every(e => e.category && e.amount) && formData.vehicleRegNo)
-      : (formData.insuranceType && formData.vehicleRegNo)
+      ? (formData.issuedCompany && formData.othersEntries.length > 0 && formData.othersEntries.every(e => e.category && e.amount) && formData.vehicleRegNo)
+      : (formData.motorEntries.length > 0 && formData.motorEntries.every(e => e.plateNo && e.insuranceType && e.provider))
   );
-  const isStep3Valid = formData.vehicleType === 'Motor' ? !!formData.amount : true;
+  const isStep3Valid = formData.vehicleType === 'Motor' ? formData.motorEntries.every(e => e.amount) : true;
   const serviceChargeNum = parseFloat(formData.serviceChargeAmount) || 0;
   const totalAmount = formData.vehicleType === 'Motor'
-    ? (parseFloat(formData.amount) || 0) + serviceChargeNum
+    ? formData.motorEntries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) + serviceChargeNum
     : formData.othersEntries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) + serviceChargeNum;
 
   return (
@@ -327,6 +331,7 @@ const DocumentCreator: React.FC<CreatorProps> = ({
         data={{
           ...formData,
           amount: totalAmount,
+          motorEntries: formData.vehicleType === 'Motor' ? formData.motorEntries.map(e => ({ ...e, amount: parseFloat(e.amount) || 0 })) : undefined,
           othersEntries: formData.vehicleType === 'Others' ? formData.othersEntries.map(e => ({ category: e.category, amount: parseFloat(e.amount) || 0 })) : undefined,
           serviceCharge: serviceChargeNum > 0 ? serviceChargeNum : undefined,
           docType
@@ -510,7 +515,15 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
-                      onClick={() => { setFormData({ ...formData, vehicleType: 'Motor', othersEntries: [] }); setAttachmentFile(null); }}
+                      onClick={() => {
+                        setFormData({
+                          ...formData,
+                          vehicleType: 'Motor',
+                          othersEntries: [],
+                          motorEntries: formData.motorEntries.length ? formData.motorEntries : [{ plateNo: formData.vehicleRegNo, insuranceType: formData.insuranceType, provider: '', amount: '' }]
+                        });
+                        setAttachmentFile(null);
+                      }}
                       className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2 ${formData.vehicleType === 'Motor' ? 'border-blue-600 bg-blue-500/10 text-blue-600' : 'border-slate-100 bg-slate-50/50 text-slate-400'}`}
                     >
                       <Car size={24} />
@@ -549,32 +562,113 @@ const DocumentCreator: React.FC<CreatorProps> = ({
 
               <div className="space-y-4">
                 {formData.vehicleType === 'Motor' && (
-                  <>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Policy Type <span className="text-red-500">*</span></label>
-                      <div className="relative">
-                        <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                        <select
-                          className={`${inputClass} pl-9 appearance-none`}
-                          value={formData.insuranceType}
-                          onChange={e => setFormData({ ...formData, insuranceType: e.target.value as InsuranceType })}
-                        >
-                          {INSURANCE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                      </div>
+                  <div className="md:col-span-2 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Motor Vehicle Entries <span className="text-red-500">*</span></label>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({
+                          ...formData,
+                          motorEntries: [...formData.motorEntries, { plateNo: '', insuranceType: 'Comprehensive', provider: '', amount: '' }]
+                        })}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold text-blue-600 hover:bg-blue-50 border border-blue-200"
+                      >
+                        <Plus size={12} /> Add Vehicle
+                      </button>
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Plate Reference <span className="text-red-500">*</span></label>
-                      <div className="relative">
-                        <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                        <input
-                          type="text" placeholder="XYZ-1234" className={`${inputClass} pl-9 uppercase tracking-widest`}
-                          value={formData.vehicleRegNo}
-                          onChange={e => setFormData({ ...formData, vehicleRegNo: e.target.value.toUpperCase() })}
-                        />
-                      </div>
+
+                    <div className="space-y-4">
+                      {formData.motorEntries.map((entry, idx) => (
+                        <div key={idx} className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4 relative">
+                          {formData.motorEntries.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, motorEntries: formData.motorEntries.filter((_, i) => i !== idx) })}
+                              className="absolute top-2 right-2 p-1.5 text-slate-300 hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Plate No</label>
+                              <div className="relative">
+                                <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                                <input
+                                  type="text"
+                                  placeholder="XYZ 123"
+                                  className={`${inputClass} pl-9 uppercase tracking-widest`}
+                                  value={entry.plateNo}
+                                  onChange={e => {
+                                    const next = [...formData.motorEntries];
+                                    next[idx] = { ...next[idx], plateNo: e.target.value.toUpperCase() };
+                                    setFormData({ ...formData, motorEntries: next });
+                                  }}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Insurance Type</label>
+                              <div className="relative">
+                                <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                                <select
+                                  className={`${inputClass} pl-9 appearance-none`}
+                                  value={entry.insuranceType}
+                                  onChange={e => {
+                                    const next = [...formData.motorEntries];
+                                    next[idx] = { ...next[idx], insuranceType: e.target.value as InsuranceType };
+                                    setFormData({ ...formData, motorEntries: next });
+                                  }}
+                                >
+                                  {INSURANCE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Provider</label>
+                              <div className="relative">
+                                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                                <select
+                                  className={`${inputClass} pl-9 appearance-none`}
+                                  value={entry.provider}
+                                  onChange={e => {
+                                    const next = [...formData.motorEntries];
+                                    next[idx] = { ...next[idx], provider: e.target.value };
+                                    setFormData({ ...formData, motorEntries: next });
+                                  }}
+                                >
+                                  <option value="">Select...</option>
+                                  {INSURANCE_COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Amount (RM)</label>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">RM</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  className={`${inputClass} pl-9 font-bold text-blue-600`}
+                                  value={entry.amount}
+                                  onChange={e => {
+                                    const next = [...formData.motorEntries];
+                                    next[idx] = { ...next[idx], amount: e.target.value };
+                                    setFormData({ ...formData, motorEntries: next });
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </>
+                  </div>
                 )}
                 {formData.vehicleType === 'Others' && (
                   <>
@@ -746,16 +840,22 @@ const DocumentCreator: React.FC<CreatorProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {formData.vehicleType === 'Motor' && (
-                <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Amount (RM) <span className="text-red-500">*</span></label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-600 font-title text-2xl opacity-40">RM</span>
-                    <input
-                      type="number" step="0.01" required placeholder="0.00"
-                      className="w-full pl-16 pr-4 py-6 bg-blue-500/5 border-2 border-blue-100 rounded-xl text-4xl md:text-5xl font-title text-blue-700 focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all shadow-inner leading-none"
-                      value={formData.amount}
-                      onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                    />
+                <div className="space-y-4">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Consolidated Value (RM)</label>
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-3">
+                    {formData.motorEntries.map((e, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-xs font-bold text-slate-700">
+                        <div className="flex flex-col">
+                          <span>{e.plateNo}</span>
+                          <span className="text-[9px] text-slate-400 uppercase tracking-wider">{e.provider} • {e.insuranceType}</span>
+                        </div>
+                        <span className="text-blue-600">RM {(parseFloat(e.amount) || 0).toLocaleString('en-MY', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    ))}
+                    <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+                   <span className="text-[10px] font-bold uppercase text-slate-400">Subtotal</span>
+                   <span className="text-lg font-title text-slate-900">RM {(totalAmount - serviceChargeNum).toLocaleString('en-MY', { minimumFractionDigits: 2 })}</span>
+                    </div>
                   </div>
                 </div>
               )}
