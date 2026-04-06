@@ -84,6 +84,9 @@ const DocumentCreator: React.FC<CreatorProps> = ({
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [contractPreviewUrl, setContractPreviewUrl] = useState<string | null>(null);
   const [isDraggingPdf, setIsDraggingPdf] = useState(false);
+  const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
+  const [editingMotorIndex, setEditingMotorIndex] = useState<number | null>(null);
+  const [currentMotorEntry, setCurrentMotorEntry] = useState({ plateNo: '', insuranceType: 'Comprehensive' as InsuranceType, provider: '', amount: '' });
 
   // Revoke object URL when attachment is removed
   useEffect(() => {
@@ -321,8 +324,39 @@ const DocumentCreator: React.FC<CreatorProps> = ({
     ? formData.motorEntries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) + serviceChargeNum
     : formData.othersEntries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) + serviceChargeNum;
 
+  const handleOpenVehicleModal = (idx: number | null = null) => {
+    if (idx !== null) {
+      setEditingMotorIndex(idx);
+      setCurrentMotorEntry({ ...formData.motorEntries[idx] });
+    } else {
+      setEditingMotorIndex(null);
+      setCurrentMotorEntry({ plateNo: '', insuranceType: 'Comprehensive', provider: '', amount: '' });
+    }
+    setIsVehicleModalOpen(true);
+  };
+
+  const handleSaveVehicle = () => {
+    const nextMotorEntries = [...formData.motorEntries];
+    if (editingMotorIndex !== null) {
+      nextMotorEntries[editingMotorIndex] = { ...currentMotorEntry };
+    } else {
+      nextMotorEntries.push({ ...currentMotorEntry });
+    }
+    setFormData({ ...formData, motorEntries: nextMotorEntries });
+    setIsVehicleModalOpen(false);
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-12">
+      <VehicleModal
+        isOpen={isVehicleModalOpen}
+        onClose={() => setIsVehicleModalOpen(false)}
+        onSave={handleSaveVehicle}
+        entry={currentMotorEntry}
+        setEntry={setCurrentMotorEntry}
+        isEdit={editingMotorIndex !== null}
+      />
+
       <PdfPreviewModal
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
@@ -567,106 +601,61 @@ const DocumentCreator: React.FC<CreatorProps> = ({
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Motor Vehicle Entries <span className="text-red-500">*</span></label>
                       <button
                         type="button"
-                        onClick={() => setFormData({
-                          ...formData,
-                          motorEntries: [...formData.motorEntries, { plateNo: '', insuranceType: 'Comprehensive', provider: '', amount: '' }]
-                        })}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold text-blue-600 hover:bg-blue-50 border border-blue-200"
+                        onClick={() => handleOpenVehicleModal(null)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold text-blue-600 hover:bg-blue-50 border border-blue-200 shadow-sm transition-all"
                       >
                         <Plus size={12} /> Add Vehicle
                       </button>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {formData.motorEntries.map((entry, idx) => (
-                        <div key={idx} className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-4 relative">
-                          {formData.motorEntries.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => setFormData({ ...formData, motorEntries: formData.motorEntries.filter((_, i) => i !== idx) })}
-                              className="absolute top-2 right-2 p-1.5 text-slate-300 hover:text-red-500 transition-colors"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          )}
+                        <div key={idx} className="bg-white/60 p-4 rounded-xl border border-slate-200 flex items-center justify-between group hover:border-blue-300 transition-all shadow-sm">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+                              <Car size={20} />
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-slate-900 tracking-tight">{entry.plateNo}</p>
+                              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                                {entry.provider} • {entry.insuranceType}
+                              </p>
+                            </div>
+                          </div>
                           
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div className="space-y-1.5">
-                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Plate No</label>
-                              <div className="relative">
-                                <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
-                                <input
-                                  type="text"
-                                  placeholder="XYZ 123"
-                                  className={`${inputClass} pl-9 uppercase tracking-widest`}
-                                  value={entry.plateNo}
-                                  onChange={e => {
-                                    const next = [...formData.motorEntries];
-                                    next[idx] = { ...next[idx], plateNo: e.target.value.toUpperCase() };
-                                    setFormData({ ...formData, motorEntries: next });
-                                  }}
-                                />
-                              </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right mr-4">
+                              <p className="text-[9px] text-slate-400 font-bold uppercase">Amount</p>
+                              <p className="text-sm font-black text-blue-600">RM {parseFloat(entry.amount || '0').toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                             </div>
-
-                            <div className="space-y-1.5">
-                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Insurance Type</label>
-                              <div className="relative">
-                                <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
-                                <select
-                                  className={`${inputClass} pl-9 appearance-none`}
-                                  value={entry.insuranceType}
-                                  onChange={e => {
-                                    const next = [...formData.motorEntries];
-                                    next[idx] = { ...next[idx], insuranceType: e.target.value as InsuranceType };
-                                    setFormData({ ...formData, motorEntries: next });
-                                  }}
-                                >
-                                  {INSURANCE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                                </select>
-                              </div>
-                            </div>
-
-                            <div className="space-y-1.5">
-                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Provider</label>
-                              <div className="relative">
-                                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
-                                <select
-                                  className={`${inputClass} pl-9 appearance-none`}
-                                  value={entry.provider}
-                                  onChange={e => {
-                                    const next = [...formData.motorEntries];
-                                    next[idx] = { ...next[idx], provider: e.target.value };
-                                    setFormData({ ...formData, motorEntries: next });
-                                  }}
-                                >
-                                  <option value="">Select...</option>
-                                  {INSURANCE_COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
-                              </div>
-                            </div>
-
-                            <div className="space-y-1.5">
-                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Amount (RM)</label>
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">RM</span>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  placeholder="0.00"
-                                  className={`${inputClass} pl-9 font-bold text-blue-600`}
-                                  value={entry.amount}
-                                  onChange={e => {
-                                    const next = [...formData.motorEntries];
-                                    next[idx] = { ...next[idx], amount: e.target.value };
-                                    setFormData({ ...formData, motorEntries: next });
-                                  }}
-                                />
-                              </div>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenVehicleModal(idx)}
+                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                title="Edit Vehicle"
+                              >
+                                <Sparkles size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, motorEntries: formData.motorEntries.filter((_, i) => i !== idx) })}
+                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                title="Remove Vehicle"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </div>
                           </div>
                         </div>
                       ))}
+                      
+                      {formData.motorEntries.length === 0 && (
+                        <div className="py-12 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-400 bg-slate-50/50">
+                          <Car size={32} className="mb-3 opacity-20" />
+                          <p className="text-[10px] font-bold uppercase tracking-[0.2em]">No vehicles registered</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -834,7 +823,12 @@ const DocumentCreator: React.FC<CreatorProps> = ({
               </div>
               <div className="bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-100 flex items-center gap-3">
                 <ShieldCheck size={16} className="text-emerald-500" />
-                <span className="text-[10px] font-bold text-emerald-700 tracking-widest uppercase">{formData.vehicleRegNo || 'PENDING'}</span>
+                <span className="text-[10px] font-bold text-emerald-700 tracking-widest uppercase">
+                  {formData.vehicleType === 'Motor' 
+                    ? (formData.motorEntries.length > 1 ? 'Multiple Vehicles' : formData.motorEntries[0]?.plateNo || 'PENDING')
+                    : (formData.vehicleRegNo || 'PENDING')
+                  }
+                </span>
               </div>
             </div>
 
@@ -932,6 +926,123 @@ const DocumentCreator: React.FC<CreatorProps> = ({
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+interface VehicleModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  entry: { plateNo: string; insuranceType: InsuranceType; provider: string; amount: string };
+  setEntry: (e: any) => void;
+  isEdit: boolean;
+}
+
+const VehicleModal: React.FC<VehicleModalProps> = ({ isOpen, onClose, onSave, entry, setEntry, isEdit }) => {
+  if (!isOpen) return null;
+
+  const inputClass = "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all";
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200">
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div>
+            <h3 className="font-title text-xl text-slate-900 tracking-wide">
+              Vehicle <span className="italic text-blue-600">Specifications</span>
+            </h3>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
+              {isEdit ? 'Modify Existing Entry' : 'Register New Asset'}
+            </p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Plate Number</label>
+              <div className="relative">
+                <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                <input
+                  type="text"
+                  placeholder="XYZ 1234"
+                  className={`${inputClass} pl-9 uppercase tracking-widest`}
+                  value={entry.plateNo}
+                  onChange={e => setEntry({ ...entry, plateNo: e.target.value.toUpperCase() })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Insurance Type</label>
+                <div className="relative">
+                  <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                  <select
+                    className={`${inputClass} pl-9 appearance-none`}
+                    value={entry.insuranceType}
+                    onChange={e => setEntry({ ...entry, insuranceType: e.target.value as InsuranceType })}
+                  >
+                    {INSURANCE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Amount (RM)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-bold">RM</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    className={`${inputClass} pl-9 font-bold text-blue-600`}
+                    value={entry.amount}
+                    onChange={e => setEntry({ ...entry, amount: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Insurance Provider</label>
+              <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                <select
+                  className={`${inputClass} pl-9 appearance-none`}
+                  value={entry.provider}
+                  onChange={e => setEntry({ ...entry, provider: e.target.value })}
+                >
+                  <option value="">Select Provider...</option>
+                  {INSURANCE_COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-3 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onSave}
+              disabled={!entry.plateNo || !entry.provider || !entry.amount}
+              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-blue-700 transition-colors disabled:opacity-30 flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
+            >
+              <CheckCircle2 size={16} />
+              Save Asset
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
