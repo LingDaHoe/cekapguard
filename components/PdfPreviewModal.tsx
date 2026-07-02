@@ -242,9 +242,9 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
               </div>
             </div>
 
-            {/* Insured Entity only */}
-            <div className="border-t border-slate-100 pt-8 mb-8 relative z-10">
-              <div className="border-l-4 border-slate-900 pl-5">
+            {/* Insured Entity and Payment Details */}
+            <div className="border-t border-slate-100 pt-8 mb-8 relative z-10 flex justify-between items-start gap-8">
+              <div className="border-l-4 border-slate-900 pl-5 flex-1">
                 <h3 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">Insured Entity</h3>
                 <div className="space-y-2 text-xs">
                   <p className="text-lg font-bold text-slate-900 leading-none mb-2">{data.customerName}</p>
@@ -270,6 +270,16 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                     <p className="text-slate-500 font-medium leading-none truncate">{data.email}</p>
                   )}
                 </div>
+              </div>
+
+              <div className="flex gap-4 items-center bg-slate-50 p-4 rounded-xl border border-slate-100 w-auto">
+                <div>
+                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-2">Payment Details</p>
+                  <p className="text-[9px] text-slate-700 font-bold uppercase">Bank: <span className="text-slate-900">Maybank</span></p>
+                  <p className="text-[9px] text-slate-700 font-bold uppercase">Name: <span className="text-slate-900">CEKAP URUS DIVERSIFIED</span></p>
+                  <p className="text-[9px] text-slate-700 font-bold uppercase">Acc Num: <span className="text-slate-900 tracking-wider">553010588453</span></p>
+                </div>
+                <img src={qrCode} alt="Payment QR Code" className="w-16 h-16 rounded object-contain bg-white" />
               </div>
             </div>
 
@@ -368,16 +378,6 @@ const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({ isOpen, onClose, onCo
                   <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-2">Protocol Disclosures</p>
                   <p className="text-[9px] text-slate-500 italic leading-relaxed mb-6">{config.footerNotes}</p>
                   
-                  <div className="mb-6 flex gap-4 items-center bg-slate-50 p-3 rounded-xl border border-slate-100 w-fit">
-                    <div>
-                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Payment Details</p>
-                      <p className="text-[9px] text-slate-700 font-bold uppercase">Bank: <span className="text-slate-900">Maybank</span></p>
-                      <p className="text-[9px] text-slate-700 font-bold uppercase">Name: <span className="text-slate-900">CEKAP URUS DIVERSIFIED</span></p>
-                      <p className="text-[9px] text-slate-700 font-bold uppercase">Acc Num: <span className="text-slate-900 tracking-wider">553010588453</span></p>
-                    </div>
-                    <img src={qrCode} alt="Payment QR Code" className="w-16 h-16 rounded object-contain bg-white" />
-                  </div>
-
                   <div className="flex gap-10 mt-2">
                     <div className="flex-1">
                       <div className="border-b border-slate-300 h-10"></div>
